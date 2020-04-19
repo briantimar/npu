@@ -33,24 +33,26 @@ enum HardwareError: Error {
 /// A fixed-size ByteWord
 struct ByteWord {
     
-    /// size of the word in bytes
-    let byteSize : Int
+    static let byteSize = 8
+    static let defaultByteValue: UInt8 = 0
+    
+    
+    let sizeInBytes : Int
     var vals: Array<UInt8>
     
-    init(byteSize : Int) {
-        self.byteSize = byteSize
-        let _default : UInt8 = 0
-        self.vals = Array(repeating: _default, count: byteSize)
+    init(sizeInBytes : Int) {
+        self.sizeInBytes = sizeInBytes
+        self.vals = Array(repeating: ByteWord.defaultByteValue, count: sizeInBytes)
     }
     
     /// size of the word in bits
     var size: Int {
-        return 8 * self.byteSize
+        return ByteWord.byteSize * self.sizeInBytes
     }
     
     /// set ByteWord values from integer array.
     mutating func set(vals: [UInt8]) throws {
-        guard (vals.count == self.byteSize) else {
+        guard (vals.count == self.sizeInBytes) else {
             throw HardwareError.invalidSize
         }
         self.vals = vals
@@ -62,32 +64,43 @@ struct ByteWord {
     }
 }
 
-/// a fixed-width bit channel
-struct Channel  {
-//    size of the channel in bytes
-    let byteSize: Int
-//    size of the channel in bits
-    var size: Int {
-        return 8 * self.byteSize
-    }
-}
-
-
-
-/// A memory unit
-class Mem: Clocked {
-
-//    size of the memory in bits
-    let size: Int
-
-    init(size:Int) {
-        self.size = size
-    }
-    
-    public func tick() {}
-    public func tock() {}
-
-    
-    
-}
+/* A computational unit - for example, a memory cell or a multiply-acc cell.
+//    Generally, has inputs, outputs, and an internal state.*/
+//class Cell : Clocked {
+//
+//    /// internal state
+//    var state: ByteWord
+//    /// input and output are both ByteWords
+//    var input, output: ByteWord
+//
+//
+//    /// called by the master clock to obtain output
+//    func emitOutput() -> ByteWord {
+//        return self.state
+//    }
+//
+//    /// override this to define how the state is updated
+//    func computeState() {}
+//
+//    func tick() {}
+//    func tock() {}
+//
+//}
+//
+///// A memory unit
+//class Mem: Clocked {
+//
+////    size of the memory in bits
+//    let size: Int
+//
+//    init(size:Int) {
+//        self.size = size
+//    }
+//
+//    public func tick() {}
+//    public func tock() {}
+//
+//
+//
+//}
 
