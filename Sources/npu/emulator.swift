@@ -45,6 +45,11 @@ struct ByteWord {
         self.vals = Array(repeating: ByteWord.defaultByteValue, count: size)
     }
     
+    init(vals: Array<Int8>) {
+        self.vals = vals
+        self.size = vals.count
+    }
+    
     /// set ByteWord values from integer array.
     mutating func set(vals: [Int8]) throws {
         guard (vals.count == self.size) else {
@@ -64,8 +69,11 @@ struct ByteWord {
 protocol Cell : Clocked {
 
     /// input and output are both ByteWords
-    var input: ByteWord {get set}
-    var output: ByteWord {get set}
+    var inputSize: Int { get}
+    var outputSize: Int {get }
+    
+    mutating func setInput(input: ByteWord)
+    func getOutput() -> ByteWord
     
 }
 
@@ -80,8 +88,8 @@ struct Channel : Clocked {
     
     init(size: Int, inputCell: Cell, outputCell: Cell) throws {
         
-        guard ((size == outputCell.output.size) &&
-            (size == outputCell.input.size)) else {
+        guard ((size == outputCell.inputSize) &&
+            (size == inputCell.outputSize)) else {
             throw HardwareError.invalidSize
         }
         self.size = size
@@ -91,30 +99,58 @@ struct Channel : Clocked {
     
 //    At the beginning of the cycle, presents output of one cell to the input of the other
     mutating func tick() {
-        self.outputCell.input = self.inputCell.output
+        self.outputCell.setInput(input:
+            self.inputCell.getOutput())
     }
 //    Nothing else to do
     mutating func tock() { }
     
 }
 
-
-/// A memory unit
-struct Mem: Cell {
-
-//    size of the memory in bytes
+/// A  cell with a single register that serves as both input and output
+struct Register : Cell {
     let size: Int
-    var input: ByteWord
-    var output: ByteWord
-
-    init(size:Int) {
+    var register: ByteWord
+    let inputSize: Int
+    let outputSize: Int
+    
+    
+    init(size: Int) {
         self.size = size
-        self.input = ByteWord(size: self.size)
-        self.output = ByteWord(size: self.size)
+        self.inputSize = size
+        self.outputSize = size
+        self.register = ByteWord(size: size)
     }
-
-    mutating func tick() {}
-    mutating func tock() {}
-
+    
+    mutating func setInput(input: ByteWord) {
+        self.register = input
+    }
+    
+    func getOutput() -> ByteWord {
+        return self.register
+    }
+    
+    func tick() {}
+    func tock() {}
+    
 }
+
+///// A memory unit
+//struct Mem: Cell {
+//
+////    size of the memory in bytes
+//    let size: Int
+//    var input: ByteWord
+//    var output: ByteWord
+//
+//    init(size:Int) {
+//        self.size = size
+//        self.input = ByteWord(size: self.size)
+//        self.output = ByteWord(size: self.size)
+//    }
+//
+//    mutating func tick() {}
+//    mutating func tock() {}
+//
+//}
 
