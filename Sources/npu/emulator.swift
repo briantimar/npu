@@ -58,7 +58,7 @@ struct ByteWord {
         self.vals = vals
     }
     
-    /// get the byte value at a give position
+    /// get the byte value at a given position
     func byte(at index: Int) -> Int8 {
         return self.vals[index]
     }
@@ -108,9 +108,9 @@ struct Channel : Clocked {
 }
 
 /// A  cell with a single register that serves as both input and output
-struct Register : Cell {
+class Register : Cell {
     let size: Int
-    var register: ByteWord
+    var vals: Array<Int8>
     
     var outputSize: Int { get {
         return size
@@ -122,16 +122,20 @@ struct Register : Cell {
     
     init(size: Int) {
         self.size = size
-        self.register = ByteWord(size: size)
+        self.vals = Array<Int8>(repeating: 0, count: size)
     }
     
+    init(vals: Array<Int8>) {
+        self.size = vals.count
+        self.vals = vals
+    }
 
-    mutating func setInput(input: ByteWord) {
-        self.register = input
+    func setInput(input: ByteWord) {
+        self.vals = input.vals
     }
     
     func getOutput() -> ByteWord {
-        return self.register
+        return ByteWord(vals: self.vals)
     }
     
     func tick() {}

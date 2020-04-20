@@ -36,7 +36,7 @@ class Hardware: XCTestCase {
 
     func testRegister() throws {
         let size = 4
-        var reg = Register(size: size)
+        let reg = Register(size: size)
         let vals: Array<Int8> = [1, 2, 3, 4]
         var word = ByteWord(size: size)
         try! word.set(vals:vals)
@@ -47,7 +47,13 @@ class Hardware: XCTestCase {
     func testChannel() throws {
         // This is an example of a functional test case.
         // Use XCTAssert and related functions to verify your tests produce the correct results.
+        let r1 = Register(vals: [2, 3])
+        let r2 = Register(vals: [4, 0])
+        var c = try! Channel(size: 2, inputCell: r1, outputCell: r2)
+        c.tick()
         
+        XCTAssertEqual(r1.vals, [2, 3])
+        XCTAssertEqual(r2.vals, [2, 3])
         
     }
 
