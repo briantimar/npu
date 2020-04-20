@@ -111,17 +111,21 @@ struct Channel : Clocked {
 struct Register : Cell {
     let size: Int
     var register: ByteWord
-    let inputSize: Int
-    let outputSize: Int
     
+    var outputSize: Int { get {
+        return size
+        }}
+    
+    var inputSize: Int { get {
+        return size
+        }}
     
     init(size: Int) {
         self.size = size
-        self.inputSize = size
-        self.outputSize = size
         self.register = ByteWord(size: size)
     }
     
+
     mutating func setInput(input: ByteWord) {
         self.register = input
     }
