@@ -6,6 +6,7 @@
 //
 
 import XCTest
+@testable import npu
 
 class memtest: XCTestCase {
 
@@ -17,9 +18,10 @@ class memtest: XCTestCase {
         // Put teardown code here. This method is called after the invocation of each test method in the class.
     }
 
-    func testExample() {
+    func test() {
         // This is an example of a functional test case.
         // Use XCTAssert and related functions to verify your tests produce the correct results.
+//        var m = Mem(size:4)
     }
 
     func testPerformanceExample() {

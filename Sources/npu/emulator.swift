@@ -12,8 +12,8 @@ protocol Clock {
 
 /// Elements which respond to a clock signal
 protocol Clocked {
-    func tick()
-    func tock()
+    mutating func tick()
+    mutating func tock()
 }
 
 /// Elements which yield values at the beginning of a cycle
@@ -34,73 +34,87 @@ enum HardwareError: Error {
 struct ByteWord {
     
     static let byteSize = 8
-    static let defaultByteValue: UInt8 = 0
+    static let defaultByteValue: Int8 = 0
     
     
-    let sizeInBytes : Int
-    var vals: Array<UInt8>
+    let size : Int
+    var vals: Array<Int8>
     
-    init(sizeInBytes : Int) {
-        self.sizeInBytes = sizeInBytes
-        self.vals = Array(repeating: ByteWord.defaultByteValue, count: sizeInBytes)
-    }
-    
-    /// size of the word in bits
-    var size: Int {
-        return ByteWord.byteSize * self.sizeInBytes
+    init(size : Int) {
+        self.size = size
+        self.vals = Array(repeating: ByteWord.defaultByteValue, count: size)
     }
     
     /// set ByteWord values from integer array.
-    mutating func set(vals: [UInt8]) throws {
-        guard (vals.count == self.sizeInBytes) else {
+    mutating func set(vals: [Int8]) throws {
+        guard (vals.count == self.size) else {
             throw HardwareError.invalidSize
         }
         self.vals = vals
     }
     
     /// get the byte value at a give position
-    func byte(at index: Int) -> UInt8 {
+    func byte(at index: Int) -> Int8 {
         return self.vals[index]
     }
 }
 
 /* A computational unit - for example, a memory cell or a multiply-acc cell.
-//    Generally, has inputs, outputs, and an internal state.*/
-//class Cell : Clocked {
-//
-//    /// internal state
-//    var state: ByteWord
-//    /// input and output are both ByteWords
-//    var input, output: ByteWord
-//
-//
-//    /// called by the master clock to obtain output
-//    func emitOutput() -> ByteWord {
-//        return self.state
-//    }
-//
-//    /// override this to define how the state is updated
-//    func computeState() {}
-//
-//    func tick() {}
-//    func tock() {}
-//
-//}
-//
-///// A memory unit
-//class Mem: Clocked {
-//
-////    size of the memory in bits
-//    let size: Int
-//
-//    init(size:Int) {
-//        self.size = size
-//    }
-//
-//    public func tick() {}
-//    public func tock() {}
-//
-//
-//
-//}
+    Generally, has inputs, outputs, and an internal state.*/
+protocol Cell : Clocked {
+
+    /// input and output are both ByteWords
+    var input: ByteWord {get set}
+    var output: ByteWord {get set}
+    
+}
+
+/* A channel, or bus, which just carries bits from one place to another.
+ Always connects exactly two Cells.
+ */
+struct Channel : Clocked {
+    
+    let size: Int
+    var inputCell: Cell
+    var outputCell: Cell
+    
+    init(size: Int, inputCell: Cell, outputCell: Cell) throws {
+        
+        guard ((size == outputCell.output.size) &&
+            (size == outputCell.input.size)) else {
+            throw HardwareError.invalidSize
+        }
+        self.size = size
+        self.inputCell = inputCell
+        self.outputCell = outputCell
+    }
+    
+//    At the beginning of the cycle, presents output of one cell to the input of the other
+    mutating func tick() {
+        self.outputCell.input = self.inputCell.output
+    }
+//    Nothing else to do
+    mutating func tock() { }
+    
+}
+
+
+/// A memory unit
+struct Mem: Cell {
+
+//    size of the memory in bytes
+    let size: Int
+    var input: ByteWord
+    var output: ByteWord
+
+    init(size:Int) {
+        self.size = size
+        self.input = ByteWord(size: self.size)
+        self.output = ByteWord(size: self.size)
+    }
+
+    mutating func tick() {}
+    mutating func tock() {}
+
+}
 
