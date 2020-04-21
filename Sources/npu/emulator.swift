@@ -16,53 +16,11 @@ protocol Clocked {
     mutating func tock()
 }
 
-/// Elements which yield values at the beginning of a cycle
-protocol Emits {
-    func emit()
-}
-
-/// Elements which consume values at the beginning of a cycle
-protocol Reads {
-    func read()
-}
 
 enum HardwareError: Error {
     case invalidSize
 }
 
-/// A fixed-size ByteWord
-struct ByteWord {
-    
-    static let byteSize = 8
-    static let defaultByteValue: Int8 = 0
-    
-    
-    let size : Int
-    var vals: Array<Int8>
-    
-    init(size : Int) {
-        self.size = size
-        self.vals = Array(repeating: ByteWord.defaultByteValue, count: size)
-    }
-    
-    init(vals: Array<Int8>) {
-        self.vals = vals
-        self.size = vals.count
-    }
-    
-    /// set ByteWord values from integer array.
-    mutating func set(vals: [Int8]) throws {
-        guard (vals.count == self.size) else {
-            throw HardwareError.invalidSize
-        }
-        self.vals = vals
-    }
-    
-    /// get the byte value at a given position
-    func byte(at index: Int) -> Int8 {
-        return self.vals[index]
-    }
-}
 
 /* A computational unit - for example, a memory cell or a multiply-acc cell.
     Generally, has inputs, outputs, and an internal state.*/
@@ -72,22 +30,23 @@ protocol Cell : Clocked {
     var inputSize: Int { get}
     var outputSize: Int {get }
     
-    mutating func setInput(input: ByteWord)
-    func getOutput() -> ByteWord
+    mutating func setInput(to: Array<Float>)
+    func getOutput() -> Array<Float>
     
 }
+
 
 /* A channel, or bus, which just carries bits from one place to another.
  Always connects exactly two Cells.
  */
 struct Channel : Clocked {
-    
+
     let size: Int
     var inputCell: Cell
     var outputCell: Cell
-    
+
     init(size: Int, inputCell: Cell, outputCell: Cell) throws {
-        
+
         guard ((size == outputCell.inputSize) &&
             (size == inputCell.outputSize)) else {
             throw HardwareError.invalidSize
@@ -96,21 +55,21 @@ struct Channel : Clocked {
         self.inputCell = inputCell
         self.outputCell = outputCell
     }
-    
+
 //    At the beginning of the cycle, presents output of one cell to the input of the other
     mutating func tick() {
-        self.outputCell.setInput(input:
+        self.outputCell.setInput(to:
             self.inputCell.getOutput())
     }
 //    Nothing else to do
     mutating func tock() { }
-    
+
 }
 
 /// A  cell with a single register that serves as both input and output
 class Register : Cell {
     let size: Int
-    var vals: Array<Int8>
+    var vals: Array<Float>
     
     var outputSize: Int { get {
         return size
@@ -120,22 +79,22 @@ class Register : Cell {
         return size
         }}
     
-    init(size: Int) {
-        self.size = size
-        self.vals = Array<Int8>(repeating: 0, count: size)
-    }
-    
-    init(vals: Array<Int8>) {
+    init(vals: Array<Float>) {
         self.size = vals.count
         self.vals = vals
     }
+    
+    init( size: Int) {
+        self.size = size
+        self.vals = Array<Float>(repeating: 0.0, count: size)
+    }
 
-    func setInput(input: ByteWord) {
-        self.vals = input.vals
+    func setInput(to input: Array<Float>) {
+        self.vals = input
     }
     
-    func getOutput() -> ByteWord {
-        return ByteWord(vals: self.vals)
+    func getOutput() -> Array<Float> {
+        return self.vals
     }
     
     func tick() {}
@@ -143,22 +102,31 @@ class Register : Cell {
     
 }
 
-///// A memory unit
-//struct Mem: Cell {
+
+/* Performs a fused multiply-add.
+ At each timestep, two inputs are multiplied, added to the register, then rounded and stored.*/
+//class FMA : Cell {
 //
-////    size of the memory in bytes
-//    let size: Int
-//    var input: ByteWord
-//    var output: ByteWord
+//    let inputSize = 1
+//    let outputSize = 1
+//    var inputs = Array<Int8>(repeating:0, count: 2)
+//    var acc: Int16 = 0
 //
-//    init(size:Int) {
-//        self.size = size
-//        self.input = ByteWord(size: self.size)
-//        self.output = ByteWord(size: self.size)
+//    init() {
 //    }
 //
-//    mutating func tick() {}
-//    mutating func tock() {}
+//    func setInput(input: ByteWord) {
+//        self.inputs = input.vals
+//    }
 //
+//    func getOutput() -> ByteWord {
+//        return ByteWord(vals: [self])
+//    }
+//
+//    func tick() {
+//
+//    }
+//    func tock() {
+//
+//    }
 //}
-

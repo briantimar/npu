@@ -18,40 +18,24 @@ class Hardware: XCTestCase {
         // Put teardown code here. This method is called after the invocation of each test method in the class.
     }
     
-    func testWordInit() {
-        let vals: Array<Int8> = [4, -1]
-        let w = ByteWord(vals: vals)
-        XCTAssertEqual(w.size, vals.count)
-        XCTAssertEqual(w.vals, vals)
-    }
-    
-    func testWordSet() {
-        let size = 4;
-        var w = ByteWord(size: size);
-        XCTAssertThrowsError(try w.set(vals: [1, 2]))
-        
-        try! w.set(vals: [1, 2, 3, 4])
-        XCTAssertEqual(w.byte(at: 0), 1)
-    }
-
+  
     func testRegister() throws {
         let size = 4
         let reg = Register(size: size)
-        let vals: Array<Int8> = [1, 2, 3, 4]
-        var word = ByteWord(size: size)
-        try! word.set(vals:vals)
-        reg.setInput(input: word)
-        XCTAssertEqual(word.vals, reg.getOutput().vals)
+        let vals: Array<Float> = [1, 2, 3, 4]
+        reg.setInput(to: vals)
+        XCTAssertEqual(vals, reg.getOutput())
     }
     
     func testChannel() throws {
         // This is an example of a functional test case.
         // Use XCTAssert and related functions to verify your tests produce the correct results.
-        let r1 = Register(vals: [2, 3])
-        let r2 = Register(vals: [4, 0])
+        
+        let r1 = Register(vals: [2.0, 3.0])
+        let r2 = Register(vals: [4.0, 0.0])
         var c = try! Channel(size: 2, inputCell: r1, outputCell: r2)
         c.tick()
-        
+
         XCTAssertEqual(r1.vals, [2, 3])
         XCTAssertEqual(r2.vals, [2, 3])
         
