@@ -1,7 +1,7 @@
 /// Anything which provides a master clock signal
 protocol Clock {
     // Time on the global clock
-    var time: Float { get }
+    var time: dataType { get }
 
     // half-cycles for the clock
     // sets internal state for the 'up' cycle
@@ -16,11 +16,11 @@ protocol Clocked {
     mutating func tock()
 }
 
-
 enum HardwareError: Error {
     case invalidSize
 }
 
+typealias dataType = Float
 
 /* A computational unit - for example, a memory cell or a multiply-acc cell.
     Generally, has inputs, outputs, and an internal state.*/
@@ -30,8 +30,8 @@ protocol Cell : Clocked {
     var inputSize: Int { get}
     var outputSize: Int {get }
     
-    mutating func setInput(to: Array<Float>)
-    func getOutput() -> Array<Float>
+    mutating func setInput(to: Array<dataType>)
+    func getOutput() -> Array<dataType>
     
 }
 
@@ -69,7 +69,7 @@ struct Channel : Clocked {
 /// A  cell with a single register that serves as both input and output
 class Register : Cell {
     let size: Int
-    var vals: Array<Float>
+    var vals: Array<dataType>
     
     var outputSize: Int { get {
         return size
@@ -79,21 +79,21 @@ class Register : Cell {
         return size
         }}
     
-    init(vals: Array<Float>) {
+    init(vals: Array<dataType>) {
         self.size = vals.count
         self.vals = vals
     }
     
     init( size: Int) {
         self.size = size
-        self.vals = Array<Float>(repeating: 0.0, count: size)
+        self.vals = Array<dataType>(repeating: 0.0, count: size)
     }
 
-    func setInput(to input: Array<Float>) {
+    func setInput(to input: Array<dataType>) {
         self.vals = input
     }
     
-    func getOutput() -> Array<Float> {
+    func getOutput() -> Array<dataType> {
         return self.vals
     }
     
