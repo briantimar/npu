@@ -75,6 +75,21 @@ class Hardware: XCTestCase {
         
     }
     
+    func testMatrixBuf() throws {
+        let numChannels = 2
+        let length = 2
+        let mb = MatrixBuffer(numChannels: numChannels, length: length)
+        
+        let initData = Matrix(rowdata: [[2.0, 4.0], [-1.0, 0.0]])
+        
+        mb.loadFrom(matrix: initData)
+        XCTAssertEqual(mb.getOutput(at: 0), [dataType(2.0)])
+        XCTAssertEqual(mb.getOutput(at: 1), [dataType(4.0)])
+        mb.advance(at: 0)
+        XCTAssertEqual(mb.getOutput(at: 0), [dataType(-1.0)])
+        XCTAssertEqual(mb.getOutput(at: 1), [dataType(4.0)])
+    }
+    
     func testPerformanceExample() throws {
         // This is an example of a performance test case.
         self.measure {

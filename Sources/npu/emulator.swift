@@ -124,12 +124,17 @@ class VectorBuf: Cell {
         loadFrom(array: vals)
     }
     
+    /** Shifts the vector buffer down by one, exposing the next element*/
+    func advance() {
+        if current < length {
+                   current += 1
+               }
+    }
+    
     func tick() {}
     
     func tock() {
-        if current < length {
-            current += 1
-        }
+        advance()
     }
     
     func isEmpty() -> Bool {
@@ -157,10 +162,13 @@ class MatrixBuffer: Clocked {
         
     }
     
-    /** loads data from a raw array*/
+    /** loads data from a raw array
+        each column in the array is treated as a channel.*/
     func loadFrom(matrix: Matrix) {
         assert(matrix.rows == length && matrix.cols == numChannels, "invalid matrix shape")
-        
+        for colIndex in 0..<matrix.cols {
+            channels[colIndex].loadFrom(array: matrix[0..<matrix.rows, colIndex])
+        }
         
     }
     
@@ -178,6 +186,10 @@ class MatrixBuffer: Clocked {
  */
     func getOutput(at index:Int) -> [dataType] {
         return channels[index].getOutput()
+    }
+    /** advances the channel at the given index*/
+    func advance(at index: Int) {
+        channels[index].advance()
     }
     
 }

@@ -40,6 +40,8 @@ struct Matrix {
     // slices will return new arrays
     // right now sharing memory is a hassle with the row-based format
     
+    // TODO these could be merged...
+    
     /// slice part of a column from the matrix
     subscript(r: Range<Int>, c: Int) -> [dataType] {
         get {
