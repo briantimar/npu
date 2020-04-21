@@ -69,6 +69,22 @@ class Hardware: XCTestCase {
         }
     }
     
+    func testVectorBuf() throws {
+        let length = 3
+        let buf = VectorBuf(length: length)
+        let vals:Array<Float> = [1.0, 2.0, 3.0]
+        var out: Float
+        buf.setInput(to:vals)
+        for i in 0..<3 {
+            out = buf.getOutput()[0]
+            AssertClose(out, vals[i])
+            buf.tick()
+            buf.tock()
+        }
+        XCTAssertTrue(buf.isEmpty())
+        
+    }
+    
     func testPerformanceExample() throws {
         // This is an example of a performance test case.
         self.measure {

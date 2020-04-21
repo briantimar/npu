@@ -115,6 +115,49 @@ class Register : Cell {
     
 }
 
+/// A buffer which holds a single vector of data; used to feed a MACArray
+/// when the vector is exhausted, yields 0
+class VectorBuf: Cell {
+    
+    let length : Int
+    let inputSize: Int
+    let outputSize: Int = 1
+    var vals: Array<dataType>
+    private var current: Int
+    
+    init(length: Int){
+        self.length = length
+        self.inputSize = length
+        self.vals = Array<dataType>(repeating: 0, count: length)
+//        index of the next item to be served
+        current = 0
+    }
+    
+    func getOutput() -> Array<dataType> {
+        if current >= length {
+            return [0]
+        }
+        else {
+        return [vals[current]]
+        }
+    }
+    func setInput(to vals: Array<dataType>) {
+        self.vals = vals
+    }
+    
+    func tick() {}
+    
+    func tock() {
+        if current < length {
+            current += 1
+        }
+    }
+    
+    func isEmpty() -> Bool {
+        return current >= length
+    }
+}
+
 
 /* Performs a  multiply-add.
  At each timestep, two inputs are multiplied, added to the register, then rounded and stored.*/
@@ -169,10 +212,9 @@ class MACArray : Clocked {
     }
     
     func tick() {
-        
     }
+    
     func tock() {
-        
     }
     
     /// Returns array holding the current accumulator states
