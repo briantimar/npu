@@ -48,7 +48,9 @@ class Hardware: XCTestCase {
 
     func testMACArray() throws {
         let size = 2
-        let mac = MACArray(size:size)
+        let inputA = MatrixBuffer(numChannels: size, length: 2)
+        let inputB = MatrixBuffer(numChannels: size, length: 2)
+        let mac = try! MACArray(size:size, inputA: inputA, inputB: inputB)
         let accs = mac.accArray()
         for row in accs {
             for el in row {

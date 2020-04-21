@@ -22,6 +22,10 @@ protocol Clocked: AnyObject {
     func tock()
 }
 
+func step(_ element: Clocked) {
+    element.tick()
+    element.tock()
+}
 
 /* A computational unit - for example, a memory cell or a multiply-acc cell.
     Generally, has inputs, outputs, and an internal state.
@@ -128,6 +132,46 @@ class VectorBuf: Cell {
     }
 }
 
+/// Defines a matrix buffer which can be used to feed the MAC array
+class MatrixBuffer: Clocked {
+    let numChannels: Int
+    let length: Int
+    var channels: [VectorBuf]
+    
+    /**
+     -Parameter numChannels: number of vector channels which constitute the buffer
+        -Parameter length: the length of each channel
+     */
+    init(numChannels:Int, length:Int) {
+        self.numChannels = numChannels
+        self.length = length
+        channels = [VectorBuf]()
+        for _ in 0..<numChannels {
+            channels.append(VectorBuf(length: length))
+        }
+        
+    }
+    
+    /// tick step for all buffers
+    func tick() {
+        _ = channels.map({v in v.tick()})
+    }
+    /// tock step for all buffers
+    func tock() {
+        _ = channels.map({v in v.tock()})
+    }
+
+    /**
+        returns output of the buffer at the given index
+ */
+    func getOutput(at index:Int) -> [dataType] {
+        return channels[index].getOutput()
+    }
+    
+}
+    
+
+
 
 /* Performs a  multiply-add.
  At each timestep, two inputs are multiplied, added to the register, then rounded and stored.*/
@@ -163,14 +207,22 @@ class MA : Cell {
 }
 
 
+
 /// an array of MA cells, which can be used to perform systolic matmul
 class MACArray : Clocked {
     
     let size: Int
     var cells: Array<Array<MA>>
+    var inputA: MatrixBuffer
+    var inputB: MatrixBuffer
     
-    init(size: Int) {
+    init(size: Int, inputA: MatrixBuffer, inputB: MatrixBuffer) throws {
         self.size = size
+        
+        guard (inputA.numChannels == size) && (inputB.numChannels == size) else {
+            throw HardwareError.invalidSize
+        }
+        
         cells = [[MA]]()
         for _ in 0..<size {
             var row = [MA]()
@@ -179,7 +231,11 @@ class MACArray : Clocked {
             }
             cells.append(row)
         }
+        self.inputA = inputA
+        self.inputB = inputB
+        
     }
+    
     
     func tick() {
     }
