@@ -10,22 +10,23 @@ protocol Clock {
     func tock()
 }
 
-/// Elements which respond to a clock signal
-protocol Clocked {
-    mutating func tick()
-    mutating func tock()
-}
-
 enum HardwareError: Error {
     case invalidSize
 }
 
 typealias dataType = Float
 
+/// Elements which respond to a clock signal
+protocol Clocked: AnyObject {
+    func tick()
+    func tock()
+}
+
+
 /* A computational unit - for example, a memory cell or a multiply-acc cell.
     Generally, has inputs, outputs, and an internal state.
     Class only, because the Channel expects reference types.*/
-protocol Cell : AnyObject, Clocked {
+protocol Cell : Clocked {
 
     /// input and output are both ByteWords
     var inputSize: Int { get}
@@ -46,37 +47,6 @@ class GlobalClock : Clock {
     func tock() {
         time += 0.5
     }
-}
-
-
-/* A channel, or bus, which just carries bits from one place to another.
- Always connects exactly two Cells.
- */
-struct Channel : Clocked {
-
-    let size: Int
-    var inputCell: Cell
-    var outputCell: Cell
-
-    init(size: Int, inputCell: Cell, outputCell: Cell) throws {
-
-        guard ((size == outputCell.inputSize) &&
-            (size == inputCell.outputSize)) else {
-            throw HardwareError.invalidSize
-        }
-        self.size = size
-        self.inputCell = inputCell
-        self.outputCell = outputCell
-    }
-
-//    At the beginning of the cycle, presents output of one cell to the input of the other
-    mutating func tick() {
-        self.outputCell.setInput(to:
-            self.inputCell.getOutput())
-    }
-//    Nothing else to do
-    mutating func tock() { }
-
 }
 
 /// A  cell with a single register that serves as both input and output
@@ -192,6 +162,7 @@ class MA : Cell {
     }
 }
 
+
 /// an array of MA cells, which can be used to perform systolic matmul
 class MACArray : Clocked {
     
@@ -208,7 +179,6 @@ class MACArray : Clocked {
             }
             cells.append(row)
         }
-        
     }
     
     func tick() {

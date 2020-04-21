@@ -31,18 +31,6 @@ class Hardware: XCTestCase {
         XCTAssertEqual(vals, reg.getOutput())
     }
     
-    func testChannel() throws {
-        // This is an example of a functional test case.
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
-        
-        let r1 = Register(vals: [2.0, 3.0])
-        let r2 = Register(vals: [4.0, 0.0])
-        var c = try! Channel(size: 2, inputCell: r1, outputCell: r2)
-        c.tick()
-
-        XCTAssertEqual(r1.vals, [2, 3])
-        XCTAssertEqual(r2.vals, [2, 3])
-    }
     
     func testMA() throws {
         let ma = MA()
