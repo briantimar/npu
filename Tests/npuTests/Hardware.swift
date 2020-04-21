@@ -23,14 +23,20 @@ class Hardware: XCTestCase {
         XCTAssertLessThan(abs(x1 - x2), eps)
     }
     
-    func testRegister() throws {
-        let size = 4
-        let reg = Register(size: size)
-        let vals: Array<Float> = [1, 2, 3, 4]
-        reg.setInput(to: vals)
-        XCTAssertEqual(vals, reg.getOutput())
-    }
+
     
+    func testBuffer() throws {
+        let size = 2
+        let buf = Buffer(size:size)
+        XCTAssertTrue(buf.isEmpty)
+        buf.set(to: [2.0, 4.0])
+        
+        let data:[Float] = buf.get()!
+        XCTAssertTrue(buf.isEmpty)
+        XCTAssertEqual(data[0], 2.0)
+        XCTAssertEqual(data[1], 4.0)
+                       
+    }
     
     func testMA() throws {
         let ma = MA()
@@ -68,8 +74,7 @@ class Hardware: XCTestCase {
         for i in 0..<3 {
             out = buf.getOutput()[0]
             AssertClose(out, vals[i])
-            buf.tick()
-            buf.tock()
+            buf.advance()
         }
         XCTAssertTrue(buf.isEmpty())
         

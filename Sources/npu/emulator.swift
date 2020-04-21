@@ -29,21 +29,56 @@ func step(_ element: Clocked) {
 
 /* A computational unit - for example, a memory cell or a multiply-acc cell.
     Generally, has inputs, outputs, and an internal state.
-    Class only, because the Channel expects reference types.*/
-protocol Cell : Clocked {
+    */
+protocol Cell : AnyObject {
 
-    /// input and output are both ByteWords
-    var inputSize: Int { get}
-    var outputSize: Int {get }
+    /// the cell consumes from these buffers
+    var inputBuffers: [Buffer]? { get }
+    /// the cell emits into these buffers
+    var outputBuffers: [Buffer]? { get }
+    /// draw from the input buffers
+    func consume()
+    /// emit into the output buffers
+    func emit()
+    /// Indicates whether the cell's computation has terminated
+    var finished: Bool { get }
     
-    func setInput(to: Array<dataType>)
-    func getOutput() -> Array<dataType>
     
 }
 
-/** Describes elements which yield values sequentially, and can be emptied.*/
-protocol Buffer {
-    func isEmpty() -> Bool
+/** A vector-valued float buffer
+    Currently, stores just a single value!*/
+class Buffer {
+    
+    let size: Int
+    var val: Array<dataType>? = nil
+    init(size: Int) {
+        self.size = size
+    }
+    
+    init(array: Array<dataType>) {
+        size = array.count
+        val = array
+    }
+    
+    /// store a new value in the buffer
+    func set(to newval: Array<dataType>){
+        assert(newval.count == size, "invalid input to buffer of size \(size)")
+        val = newval
+    }
+    
+    /// draws the buffer value, if it exists
+    func get() -> Array<dataType>? {
+        let data = val
+        val = nil
+        return data
+    }
+    
+    /// check whether the buffer is empty
+    var isEmpty : Bool {
+        val == nil
+    }
+    
 }
 
 
@@ -59,22 +94,18 @@ class GlobalClock : Clock {
     }
 }
 
-/// A  cell with a single register that serves as both input and output
-class Register : Cell {
+/// A cell wrapper around a piece of RAM; cannot be exhausted
+class RAM : Cell  {
     let size: Int
     var vals: Array<dataType>
-    
-    var outputSize: Int { get {
-        return size
-        }}
-    
-    var inputSize: Int { get {
-        return size
-        }}
+    // register does not consume input
+    var inputBuffers:[Buffer]? = nil
+    var outputBuffers: [Buffer]?
     
     init(vals: Array<dataType>) {
         self.size = vals.count
         self.vals = vals
+        outputBuffers = [Buffer(array: vals)]
     }
     
     init( size: Int) {
@@ -82,22 +113,17 @@ class Register : Cell {
         self.vals = Array<dataType>(repeating: 0.0, count: size)
     }
 
-    func setInput(to input: Array<dataType>) {
-        self.vals = input
-    }
+    func consume() {}
     
-    func getOutput() -> Array<dataType> {
-        return self.vals
-    }
+    func emit() {}
     
-    func tick() {}
-    func tock() {}
-    
+    /// A RAM buffer cannot be exhausted
+    var finished: Bool { false }
 }
 
 /// A buffer which holds a single vector of data; used to feed a MACArray
 /// when the vector is exhausted, yields 0
-class VectorBuf: Cell, Buffer {
+class VectorBuf {
     
     let length : Int
     let inputSize: Int
@@ -143,19 +169,13 @@ class VectorBuf: Cell, Buffer {
     }
     
     
-    func tick() {}
-    
-    func tock() {
-        advance()
-    }
-    
     func isEmpty() -> Bool {
         return current >= length
     }
 }
 
 /// Defines a matrix buffer which can be used to feed the MAC array
-class MatrixBuffer: Clocked, Buffer {
+class MatrixBuffer {
     let numChannels: Int
     let length: Int
     var channels: [VectorBuf]
@@ -183,14 +203,7 @@ class MatrixBuffer: Clocked, Buffer {
         
     }
     
-    /// tick step for all buffers
-    func tick() {
-        _ = channels.map({v in v.tick()})
-    }
-    /// tock step for all buffers
-    func tock() {
-        _ = channels.map({v in v.tock()})
-    }
+
 
     /**
         returns output of the buffer at the given index
@@ -219,7 +232,7 @@ class MatrixBuffer: Clocked, Buffer {
 
 /* Performs a  multiply-add.
  At each timestep, two inputs are multiplied, added to the register, then rounded and stored.*/
-class MA : Cell {
+class MA {
 
     let inputSize = 2
     let outputSize = 1
