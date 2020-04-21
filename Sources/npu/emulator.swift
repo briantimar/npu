@@ -1,7 +1,7 @@
 /// Anything which provides a master clock signal
 protocol Clock {
     // Time on the global clock
-    var time: dataType { get }
+    var time: Float { get set }
 
     // half-cycles for the clock
     // sets internal state for the 'up' cycle
@@ -34,6 +34,18 @@ protocol Cell : AnyObject, Clocked {
     func setInput(to: Array<dataType>)
     func getOutput() -> Array<dataType>
     
+}
+
+class GlobalClock : Clock {
+    var time: Float = 0
+    
+    func tick() {
+        time += 0.5
+    }
+    
+    func tock() {
+        time += 0.5
+    }
 }
 
 
@@ -135,4 +147,45 @@ class MA : Cell {
     func reset() {
         self.acc = 0
     }
+}
+
+/// an array of MA cells, which can be used to perform systolic matmul
+class MACArray : Clocked {
+    
+    let size: Int
+    var cells: Array<Array<MA>>
+    
+    init(size: Int) {
+        self.size = size
+        cells = [[MA]]()
+        for _ in 0..<size {
+            var row = [MA]()
+            for _ in 0..<size {
+                row.append(MA())
+            }
+            cells.append(row)
+        }
+        
+    }
+    
+    func tick() {
+        
+    }
+    func tock() {
+        
+    }
+    
+    /// Returns array holding the current accumulator states
+    func accArray() -> [[Float]] {
+        var accs = [[Float]]()
+        for i in 0..<size {
+            var row = [Float]()
+            for j in 0..<size {
+                row.append(cells[i][j].acc)
+            }
+            accs.append(row)
+        }
+        return accs
+    }
+    
 }

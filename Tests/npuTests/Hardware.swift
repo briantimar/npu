@@ -56,9 +56,19 @@ class Hardware: XCTestCase {
         AssertClose(ma.getOutput()[0], 11.0)
         ma.reset()
         AssertClose(ma.getOutput()[0], 0.0)
-        
     }
 
+    func testMACArray() throws {
+        let size = 2
+        let mac = MACArray(size:size)
+        let accs = mac.accArray()
+        for row in accs {
+            for el in row {
+                AssertClose(el, 0)
+            }
+        }
+    }
+    
     func testPerformanceExample() throws {
         // This is an example of a performance test case.
         self.measure {
