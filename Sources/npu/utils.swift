@@ -36,4 +36,31 @@ struct Matrix {
             data[r][c] = newVal
         }
     }
+    
+    // slices will return new arrays
+    // right now sharing memory is a hassle with the row-based format
+    
+    /// slice part of a column from the matrix
+    subscript(r: Range<Int>, c: Int) -> [dataType] {
+        get {
+            var colslice = [dataType]()
+            for ir in r {
+                colslice.append(data[ir][c])
+            }
+            return colslice
+        }
+    }
+    
+    /// slice part of a row from the matrix
+    subscript(r: Int, c:Range<Int>) -> [dataType] {
+        get {
+            var rowslice = [dataType]()
+            for ic in c {
+                rowslice.append(data[r][ic])
+            }
+            return rowslice
+        }
+    }
+    
+    
 }

@@ -36,7 +36,21 @@ class utils: XCTestCase {
         let row2: [Float] = [4.0, 5.0]
         let m = Matrix(rowdata: [row1, row2])
         XCTAssertEqual(m[0,1], 3.0)
-        XCTAssertEqual(m[1,0],4.0) 
+        XCTAssertEqual(m[1,0],4.0)
+    }
+    
+    func testMatrixSlice() throws {
+       let row1: [Float] = [2.0, 3.0]
+       let row2: [Float] = [4.0, 5.0]
+       let m = Matrix(rowdata: [row1, row2])
+       let r1 = m[0..<2, 1]
+        XCTAssertEqual(r1.count, 2)
+        XCTAssertEqual(r1[0], 3.0)
+        XCTAssertEqual(r1[1], 5.0)
+        
+        let r2 = m[0, 1..<2]
+        XCTAssertEqual(r2.count, 1)
+        XCTAssertEqual(r2[0], 3.0)
     }
     
     func testPerformanceExample() throws {

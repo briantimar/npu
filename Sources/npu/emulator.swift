@@ -115,8 +115,13 @@ class VectorBuf: Cell {
         return [vals[current]]
         }
     }
+    
+    func loadFrom(array: [dataType]) {
+        self.vals = array
+    }
+    
     func setInput(to vals: Array<dataType>) {
-        self.vals = vals
+        loadFrom(array: vals)
     }
     
     func tick() {}
@@ -149,6 +154,13 @@ class MatrixBuffer: Clocked {
         for _ in 0..<numChannels {
             channels.append(VectorBuf(length: length))
         }
+        
+    }
+    
+    /** loads data from a raw array*/
+    func loadFrom(matrix: Matrix) {
+        assert(matrix.rows == length && matrix.cols == numChannels, "invalid matrix shape")
+        
         
     }
     
