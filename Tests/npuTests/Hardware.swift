@@ -19,6 +19,10 @@ class Hardware: XCTestCase {
     }
     
   
+    func AssertClose(_ x1:Float, _ x2:Float, eps:Float=1e-6) {
+        XCTAssertLessThan(abs(x1 - x2), eps)
+    }
+    
     func testRegister() throws {
         let size = 4
         let reg = Register(size: size)
@@ -38,6 +42,20 @@ class Hardware: XCTestCase {
 
         XCTAssertEqual(r1.vals, [2, 3])
         XCTAssertEqual(r2.vals, [2, 3])
+    }
+    
+    func testMA() throws {
+        let ma = MA()
+        ma.setInput(to: [2.0, 3.0])
+        ma.tick()
+        ma.tock()
+        AssertClose(ma.getOutput()[0], 6.0)
+        ma.setInput(to: [1.0, 5.0])
+        ma.tick()
+        ma.tock()
+        AssertClose(ma.getOutput()[0], 11.0)
+        ma.reset()
+        AssertClose(ma.getOutput()[0], 0.0)
         
     }
 

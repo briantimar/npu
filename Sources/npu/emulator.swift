@@ -106,28 +106,33 @@ class Register : Cell {
 
 /* Performs a  multiply-add.
  At each timestep, two inputs are multiplied, added to the register, then rounded and stored.*/
-//class MA : Cell {
-//
-//    let inputSize = 1
-//    let outputSize = 1
-//    var inputs = Array<Int8>(repeating:0, count: 2)
-//    var acc: Int16 = 0
-//
-//    init() {
-//    }
-//
-//    func setInput(input: ByteWord) {
-//        self.inputs = input.vals
-//    }
-//
-//    func getOutput() -> ByteWord {
-//        return ByteWord(vals: [self])
-//    }
-//
-//    func tick() {
-//
-//    }
-//    func tock() {
-//
-//    }
-//}
+class MA : Cell {
+
+    let inputSize = 2
+    let outputSize = 1
+    var inputs = Array<Float>(repeating:0, count: 2)
+    var acc: Float  = 0
+
+    init() {
+    }
+
+    func setInput(to input: Array<Float>) {
+        self.inputs = input
+    }
+
+    func getOutput() -> Array<Float> {
+        return [self.acc]
+    }
+
+    func tick() {
+    }
+    /// updates accumulator based on the inputs
+    func tock() {
+        self.acc += self.inputs[0] * self.inputs[1]
+    }
+    
+    /// resets the accumulator to zero
+    func reset() {
+        self.acc = 0
+    }
+}
