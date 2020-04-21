@@ -23,14 +23,15 @@ enum HardwareError: Error {
 typealias dataType = Float
 
 /* A computational unit - for example, a memory cell or a multiply-acc cell.
-    Generally, has inputs, outputs, and an internal state.*/
-protocol Cell : Clocked {
+    Generally, has inputs, outputs, and an internal state.
+    Class only, because the Channel expects reference types.*/
+protocol Cell : AnyObject, Clocked {
 
     /// input and output are both ByteWords
     var inputSize: Int { get}
     var outputSize: Int {get }
     
-    mutating func setInput(to: Array<dataType>)
+    func setInput(to: Array<dataType>)
     func getOutput() -> Array<dataType>
     
 }
@@ -103,9 +104,9 @@ class Register : Cell {
 }
 
 
-/* Performs a fused multiply-add.
+/* Performs a  multiply-add.
  At each timestep, two inputs are multiplied, added to the register, then rounded and stored.*/
-//class FMA : Cell {
+//class MA : Cell {
 //
 //    let inputSize = 1
 //    let outputSize = 1
