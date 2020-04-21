@@ -88,6 +88,9 @@ class Hardware: XCTestCase {
         mb.advance(at: 0)
         XCTAssertEqual(mb.getOutput(at: 0), [dataType(-1.0)])
         XCTAssertEqual(mb.getOutput(at: 1), [dataType(4.0)])
+        
+        XCTAssertEqual(mb.remaining(at: 0), 1)
+        XCTAssertEqual(mb.remaining(at: 1), 2)
     }
     
     func testPerformanceExample() throws {

@@ -41,6 +41,12 @@ protocol Cell : Clocked {
     
 }
 
+/** Describes elements which yield values sequentially, and can be emptied.*/
+protocol Buffer {
+    func isEmpty() -> Bool
+}
+
+
 class GlobalClock : Clock {
     var time: Float = 0
     
@@ -91,7 +97,7 @@ class Register : Cell {
 
 /// A buffer which holds a single vector of data; used to feed a MACArray
 /// when the vector is exhausted, yields 0
-class VectorBuf: Cell {
+class VectorBuf: Cell, Buffer {
     
     let length : Int
     let inputSize: Int
@@ -131,6 +137,12 @@ class VectorBuf: Cell {
                }
     }
     
+    /// Returns the number of elements remaining in the buffer
+    var remaining: Int {
+        return length - current
+    }
+    
+    
     func tick() {}
     
     func tock() {
@@ -143,7 +155,7 @@ class VectorBuf: Cell {
 }
 
 /// Defines a matrix buffer which can be used to feed the MAC array
-class MatrixBuffer: Clocked {
+class MatrixBuffer: Clocked, Buffer {
     let numChannels: Int
     let length: Int
     var channels: [VectorBuf]
@@ -159,7 +171,6 @@ class MatrixBuffer: Clocked {
         for _ in 0..<numChannels {
             channels.append(VectorBuf(length: length))
         }
-        
     }
     
     /** loads data from a raw array
@@ -192,6 +203,15 @@ class MatrixBuffer: Clocked {
         channels[index].advance()
     }
     
+    /// number of elements remaining in the given channel
+    func remaining(at index: Int) -> Int {
+        channels[index].remaining
+    }
+    
+    ///Checks whether all channels are emptied
+    func isEmpty() -> Bool {
+        channels.allSatisfy({v in v.isEmpty()})
+    }
 }
     
 
