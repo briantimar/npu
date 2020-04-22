@@ -194,12 +194,10 @@ class MA : Cell{
 
     var acc: Float  = 0
     var inputBuffers: [Buffer]?
-    var outputBuffers: [Buffer]?
+    var outputBuffers: [Buffer]? = [Buffer(size: 1), Buffer(size:1)]
     
-    init(inputs: [Buffer]) {
-        assert(inputs.count == 2, "MA cell expects two input buffers")
-        inputBuffers = inputs
-        outputBuffers = [Buffer(size: 1), Buffer(size:1)]
+    init(leftInput: Buffer, topInput: Buffer) {
+        inputBuffers = [leftInput, topInput]
     }
     
     private func bothInputsReady() -> Bool {
@@ -221,60 +219,66 @@ class MA : Cell{
         !bothInputsReady()
     }
     
+    var rightOutput: Buffer {
+        outputBuffers![0]
+    }
+    var bottomOutput: Buffer {
+        outputBuffers![1]
+    }
+    
     /// resets the accumulator to zero
     func reset() {
         acc = 0
     }
 }
 
+/// an array of MA cells, which can be used to perform systolic matmul
+/// data is drawn from two feeds: one on the left, and one on the top
+class MACArray {
 
-//
-///// an array of MA cells, which can be used to perform systolic matmul
-//class MACArray : Clocked {
-//    
-//    let size: Int
-//    var cells: Array<Array<MA>>
-//    var inputA: MatrixBuffer
-//    var inputB: MatrixBuffer
-//    
-//    init(size: Int, inputA: MatrixBuffer, inputB: MatrixBuffer) throws {
-//        self.size = size
-//        
-//        guard (inputA.numChannels == size) && (inputB.numChannels == size) else {
-//            throw HardwareError.invalidSize
-//        }
-//        
-//        cells = [[MA]]()
-//        for _ in 0..<size {
-//            var row = [MA]()
-//            for _ in 0..<size {
-//                row.append(MA())
-//            }
-//            cells.append(row)
-//        }
-//        self.inputA = inputA
-//        self.inputB = inputB
-//        
-//    }
-//    
-//    
-//    func tick() {
-//    }
-//    
-//    func tock() {
-//    }
-//    
-//    /// Returns array holding the current accumulator states
-//    func accArray() -> [[Float]] {
-//        var accs = [[Float]]()
-//        for i in 0..<size {
-//            var row = [Float]()
-//            for j in 0..<size {
-//                row.append(cells[i][j].acc)
-//            }
-//            accs.append(row)
-//        }
-//        return accs
-//    }
-//    
-//}
+    var cells: [[MA]]
+    /// Number of rows in the array
+    let rows: Int
+    /// Number of cols in the array
+    let cols: Int
+    let leftFeeds: [VectorFeed]
+    let topFeeds: [VectorFeed]
+
+    init(leftFeeds: [VectorFeed], topFeeds: [VectorFeed]) {
+        self.leftFeeds = leftFeeds
+        self.topFeeds = topFeeds
+        rows = leftFeeds.count
+        cols = topFeeds.count
+
+        cells = [[MA]]()
+        //holds inputs from the previous row
+        var upperBufs: [Buffer] = topFeeds.map({v in v.outputBuffers![0]})
+        var newCell: MA
+        for ir in 0..<rows {
+            var row = [MA]()
+            var leftInput = leftFeeds[ir].outputBuffers![0]
+            for ic in 0..<cols {
+                newCell = MA(leftInput: leftInput, topInput: upperBufs[ic])
+                row.append(newCell)
+                leftInput = newCell.rightOutput
+                upperBufs[ic] = newCell.bottomOutput
+            }
+            cells.append(row)
+        }
+        
+    }
+
+    /// Returns array holding the current accumulator states
+    func accArray() -> [[Float]] {
+        var accs = [[Float]]()
+        for i in 0..<rows {
+            var row = [Float]()
+            for j in 0..<cols {
+                row.append(cells[i][j].acc)
+            }
+            accs.append(row)
+        }
+        return accs
+    }
+
+}

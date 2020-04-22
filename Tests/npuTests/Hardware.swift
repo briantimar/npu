@@ -68,7 +68,7 @@ class Hardware: XCTestCase {
     func testMA() throws {
         let feed1 = VectorFeed(vals: [1.0, 2.0])
         let feed2 = VectorFeed(vals: [2.0, 3.0])
-        let ma = MA(inputs: [feed1.outputBuffers![0], feed2.outputBuffers![0]])
+        let ma = MA(leftInput: feed1.outputBuffers![0], topInput: feed2.outputBuffers![0])
         XCTAssertEqual(ma.acc, 0.0)
         feed1.emit()
         feed2.emit()
@@ -83,18 +83,14 @@ class Hardware: XCTestCase {
     }
     
 
-//    func testMACArray() throws {
-//        let size = 2
-//        let inputA = MatrixBuffer(numChannels: size, length: 2)
-//        let inputB = MatrixBuffer(numChannels: size, length: 2)
-//        let mac = try! MACArray(size:size, inputA: inputA, inputB: inputB)
-//        let accs = mac.accArray()
-//        for row in accs {
-//            for el in row {
-//                AssertClose(el, 0)
-//            }
-//        }
-//    }
+    func testMACArray() throws {
+        let leftFeeds = [VectorFeed(vals:[1.0]), VectorFeed(vals:[2.0])]
+        let topFeeds = [VectorFeed(vals:[3.0]), VectorFeed(vals: [4.0])]
+        let mac = MACArray(leftFeeds: leftFeeds, topFeeds: topFeeds)
+        XCTAssertEqual(mac.rows, leftFeeds.count)
+        XCTAssertEqual(mac.cols, topFeeds.count)
+        
+    }
 
     
     func testPerformanceExample() throws {
