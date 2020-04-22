@@ -62,8 +62,8 @@ class Buffer {
     }
     
     /// store a new value in the buffer
-    func set(to newval: Array<dataType>){
-        assert(newval.count == size, "invalid input to buffer of size \(size)")
+    func set(to newval: Array<dataType>?){
+        assert(newval == nil || newval!.count == size, "invalid input to buffer of size \(size)")
         val = newval
     }
     
@@ -122,7 +122,6 @@ class RAM : Cell  {
 }
 
 /// A buffer which holds a single vector of data; used to feed a MACArray
-/// when the vector is exhausted, yields 0
 class VectorFeed : Cell {
     
 
@@ -144,9 +143,9 @@ class VectorFeed : Cell {
         vals.count
     }
     
-    func currentValue() -> Array<dataType> {
+    func currentValue() -> Array<dataType>? {
         if current >= length {
-            return [0]
+            return nil
         }
         else {
         return [vals[current]]
@@ -155,6 +154,7 @@ class VectorFeed : Cell {
     
     func loadFrom(array: [dataType]) {
         self.vals = array
+        current = 0
     }
     
     func consume() {}
@@ -167,6 +167,7 @@ class VectorFeed : Cell {
     }
     
     func emit() {
+        
         outputBuffers![0].set(to: currentValue())
         advance()
     }
