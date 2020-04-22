@@ -77,6 +77,9 @@ class Buffer {
     var isEmpty : Bool {
         val == nil
     }
+    var isFull : Bool {
+        !isEmpty
+    }
     /// Request that this buffer be filled
     func openRequest() {
         hasRequest = true
@@ -154,7 +157,7 @@ class VectorFeed : Cell {
         outputBuffers![0]
     }
     
-    func currentValue() -> Array<dataType>? {
+    var currentValue : Array<dataType>? {
         if current >= length {
             return nil
         }
@@ -181,7 +184,7 @@ class VectorFeed : Cell {
     /** The feed emits the next element, if requested and possible*/
     func emit() {
         if outputBuffer.hasRequest && !isEmpty {
-            outputBuffer.set(to: currentValue())
+            outputBuffer.set(to: currentValue)
             advance()
             outputBuffer.closeRequest()
         }
@@ -216,39 +219,81 @@ class MA : Cell{
     var inputBuffers: [Buffer]?
     var outputBuffers: [Buffer]? = [Buffer(size: 1), Buffer(size:1)]
     
-    init(leftInput: Buffer, topInput: Buffer) {
+    /// Number of accumulation steps to perform
+    var numAcc: Int = 0
+    
+    /// Named buffers
+    let leftInput: Buffer
+    let topInput: Buffer
+    let rightOutput: Buffer
+    let bottomOutput: Buffer
+    
+    /// hold inputs for pass-through
+    private var leftInpCache: dataType = 0
+    private var topInpCache: dataType = 0
+    
+    /// number of acc steps performed in a particular computation
+    private var accSteps: Int = 0
+    
+    init(leftInput: Buffer, topInput: Buffer, numAcc:Int = 0) {
         inputBuffers = [leftInput, topInput]
+        self.leftInput = leftInput
+        self.topInput = topInput
+        rightOutput = outputBuffers![0]
+        bottomOutput = outputBuffers![0]
+        self.numAcc = numAcc
     }
     
-    private func bothInputsReady() -> Bool {
-        !(inputBuffers![0].isEmpty || inputBuffers![1].isEmpty )
+    private var bothInputsFull : Bool {
+        leftInput.isFull && topInput.isFull
     }
 
+    /// performs a single mul-acc step
+    func compute(leftVal: dataType, topVal: dataType) {
+        acc += leftVal * topVal
+        accSteps += 1
+    }
+    
+    /** If both inputs are present, performs a compute step.
+        If more compute is required, lodges the appropriate requests*/
     func consume() {
-        if bothInputsReady() {
-            let inp1 = inputBuffers![0].get()!
-            let inp2 = inputBuffers![1].get()!
-            acc += inp1[0] * inp2[0]
-            // data needs to flow into outputs for other cells
-            outputBuffers![0].set(to: inp1)
-            outputBuffers![1].set(to: inp2)
+        if bothInputsFull {
+            let leftVal = leftInput.get()![0]
+            let topVal = topInput.get()![0]
+            compute(leftVal: leftVal, topVal: topVal)
+            // cache the inputs locally for pass-through
+            leftInpCache = leftVal
+            topInpCache = topVal
+        }
+        // submit pull requests if more to do
+        if !finished {
+            for inpBuf in inputBuffers! {
+                if inpBuf.isEmpty {
+                    inpBuf.openRequest()
+                }
+            }
         }
     }
-    func emit() {}
+    /** If any output buffer requests data, fill it from the cache*/
+    func emit() {
+        if rightOutput.hasRequest {
+            rightOutput.set(to: [leftInpCache])
+            rightOutput.closeRequest()
+        }
+        if bottomOutput.hasRequest {
+            bottomOutput.set(to: [topInpCache])
+            bottomOutput.closeRequest()
+        }
+    }
+    
     var finished: Bool {
-        !bothInputsReady()
+        accSteps == numAcc
     }
-    
-    var rightOutput: Buffer {
-        outputBuffers![0]
-    }
-    var bottomOutput: Buffer {
-        outputBuffers![1]
-    }
-    
+        
     /// resets the accumulator to zero
     func reset() {
         acc = 0
+        accSteps = 0
     }
 }
 

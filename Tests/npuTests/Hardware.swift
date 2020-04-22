@@ -39,45 +39,50 @@ class Hardware: XCTestCase {
     
         let vals:Array<Float> = [1.0, 2.0, 3.0]
         let feed = VectorFeed(vals: vals)
-        XCTAssertFalse(feed.finished)
+        
     
         for i in 0..<feed.length {
+            feed.outputBuffer.openRequest()
             feed.emit()
-            XCTAssertEqual(feed.outputBuffers![0].get(), [vals[i]])
+            XCTAssertEqual(feed.outputBuffer.get(), [vals[i]])
         }
-        XCTAssertTrue(feed.finished)
-        feed.emit()
-        XCTAssertEqual(feed.outputBuffers![0].get(), nil)
         
-        feed.loadFrom(array: [5.0])
-        XCTAssertFalse(feed.finished)
+        feed.emit()
+        XCTAssertEqual(feed.outputBuffer.get(), nil)
+        
+        
+        
     }
     func testLoadVectorFeeds() throws {
         let m = Matrix(rowdata: [[2.0, 3.0], [4.0, 5.0]])
         let feeds = [VectorFeed(), VectorFeed()]
-        XCTAssertTrue(feeds[0].finished)
+        
         loadVectorFeeds(from: m, to: feeds)
         XCTAssertEqual(feeds[0].length, 2)
-        XCTAssertFalse(feeds[0].finished)
+        XCTAssertFalse(feeds[0].isEmpty)
         for i in 0..<2 {
+            feeds[0].outputBuffer.openRequest()
             feeds[0].emit()
-            XCTAssertEqual(feeds[0].outputBuffers![0].get(), [m[i,0]])
+            XCTAssertEqual(feeds[0].outputBuffer.get(), [m[i,0]])
         }
     }
 
     func testMA() throws {
         let feed1 = VectorFeed(vals: [1.0, 2.0])
         let feed2 = VectorFeed(vals: [2.0, 3.0])
-        let ma = MA(leftInput: feed1.outputBuffers![0], topInput: feed2.outputBuffers![0])
-        XCTAssertEqual(ma.acc, 0.0)
+        let ma = MA(leftInput: feed1.outputBuffer, topInput: feed2.outputBuffer, numAcc: feed1.length)
+        ma.consume()
         feed1.emit()
         feed2.emit()
-        ma.consume()
-        XCTAssertEqual(ma.acc, 2.0)
         
+        XCTAssertEqual(ma.acc, 0.0)
+        ma.consume()
         feed1.emit()
         feed2.emit()
+        XCTAssertEqual(ma.acc, 2.0)
         ma.consume()
+        feed1.emit()
+        feed2.emit()
         XCTAssertEqual(ma.acc, 8.0)
         
     }
