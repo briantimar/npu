@@ -53,6 +53,21 @@ class utils: XCTestCase {
         XCTAssertEqual(r2[0], 3.0)
     }
     
+    func testMatrixIterator() throws {
+        let m = Matrix(rowdata: [[1.0, 2.0], [1.0, 1.0]])
+        var ct: dataType = 0
+        for el in m.elements {
+            ct += el
+        }
+        XCTAssertEqual(ct, 5.0)
+    }
+    
+    func testMatrixSum() {
+//        let m1 = Matrix(rowdata: [[1.0, 2.0], [1.0, 0.0]])
+//        let m2 = Matrix(rowdata: [[5.0, 3.0], [-4.0, 1.0]])
+//        let sum = m1 + m2
+    }
+    
     func testPerformanceExample() throws {
         // This is an example of a performance test case.
         self.measure {

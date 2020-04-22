@@ -63,6 +63,55 @@ struct Matrix {
             return rowslice
         }
     }
+}
+
+/// Iterator over the elements in a Matrix
+
+extension Matrix {
+    struct MatrixIterator : Sequence, IteratorProtocol {
+        let rowdata: [[dataType]]
+        var ct:Int = 0
+        var rows: Int
+        var cols: Int
+        
+        init(rows:Int, cols:Int, rowdata: [[dataType]]){
+            self.rows = rows
+            self.cols = cols
+            self.rowdata = rowdata
+        }
+        mutating func makeIterator() -> Matrix.MatrixIterator {
+            ct = 0
+            return self
+        }
+        mutating func next() -> dataType? {
+            guard ct < rows * cols else{
+                return nil
+            }
+            defer {
+                ct += 1
+            }
+            return rowdata[ct / cols][ct % cols]
+        }
+    }
+    
+    /// Returns a sequence holding all elements of the array
+    var elements: MatrixIterator {
+        return MatrixIterator(rows: rows, cols: cols, rowdata: data)
+    }
+}
+
+
+extension Matrix {
+    static func + (m1 : Matrix, m2: Matrix) -> Matrix {
+        assert(m1.rows == m2.rows && m1.cols == m2.cols, "matrix dimensions must agree")
+        var sum = Matrix(rows:m1.rows, cols: m1.cols)
+        for i in 0..<m1.rows {
+            for j in 0..<m2.cols {
+                sum[i,j] = m1[i,j] + m2[i,j]
+            }
+        }
+        return sum
+    }
     
     
 }
