@@ -4,6 +4,16 @@
 
 import Foundation
 
+/// array dot product
+func dot(_ u: [dataType],_ v:[dataType]) -> dataType {
+    assert(u.count == v.count, "vector lengths must match")
+    var prod: dataType = 0
+    for i in 0..<u.count {
+        prod += u[i] * v[i]
+    }
+    return prod
+}
+
 struct Matrix {
     let rows: Int
     let cols: Int
@@ -148,5 +158,16 @@ extension Matrix {
         return sum
     }
     
+    /// Computes the matrix product
+    static func * (m1 : Matrix, m2: Matrix) -> Matrix {
+        assert(m1.cols == m2.rows, "matrix inner dimensions must agree")
+        var prod = Matrix(rows:m1.rows, cols: m2.cols)
+        for i in 0..<m1.rows {
+            for j in 0..<m2.cols {
+                prod[i,j] = dot(m1[i, 0..<m1.cols], m2[0..<m2.rows, j])
+            }
+        }
+        return prod
+    }
     
 }

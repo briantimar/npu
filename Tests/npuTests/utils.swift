@@ -87,6 +87,14 @@ class utils: XCTestCase {
         
     }
     
+    func testMatrixProd() {
+        let m1 = Matrix(rowdata: [[1.0, 2.0], [1.0, 0.0]])
+        let m2 = Matrix(rowdata: [[5.0], [3.0]])
+        let target = Matrix(rowdata: [[11.0], [5.0]])
+        let prod = m1 * m2
+        AssertClose( (prod-target).l2norm(), 0.0)
+    }
+    
     func testPerformanceExample() throws {
         // This is an example of a performance test case.
         self.measure {
