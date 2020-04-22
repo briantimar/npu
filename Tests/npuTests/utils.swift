@@ -55,14 +55,20 @@ class utils: XCTestCase {
     
     func testMatrixIterator() throws {
         let m = Matrix(rowdata: [[1.0, 2.0], [1.0, 1.0]])
-        var ct: dataType = 0
+        var elements = [dataType]()
         for el in m.elements {
-            ct += el
+            elements.append(el)
         }
-        XCTAssertEqual(ct, 5.0)
+        let target: [dataType] = [1.0, 1.0, 1.0, 2.0]
+        XCTAssertEqual(elements.sorted(), target)
     }
     
-    func testMatrixSum() {
+    func testMatrixSum() throws {
+        let m1 = Matrix(rowdata: [[1.0, 2.0]])
+        XCTAssertEqual(m1.sum(), 3.0)
+    }
+    
+    func testMatrixAdd() {
 //        let m1 = Matrix(rowdata: [[1.0, 2.0], [1.0, 0.0]])
 //        let m2 = Matrix(rowdata: [[5.0, 3.0], [-4.0, 1.0]])
 //        let sum = m1 + m2

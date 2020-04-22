@@ -98,6 +98,15 @@ extension Matrix {
     var elements: MatrixIterator {
         return MatrixIterator(rows: rows, cols: cols, rowdata: data)
     }
+    
+    /// sum of all array elements
+    func sum() -> dataType {
+        var ct:dataType = 0
+        for el in elements {
+            ct += el
+        }
+        return ct
+    }
 }
 
 
