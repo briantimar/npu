@@ -31,7 +31,6 @@ func step(_ element: Clocked) {
     Generally, has inputs, outputs, and an internal state.
     */
 protocol Cell : AnyObject {
-
     /// the cell consumes from these buffers
     var inputBuffers: [Buffer]? { get }
     /// the cell emits into these buffers
@@ -42,8 +41,6 @@ protocol Cell : AnyObject {
     func emit()
     /// Indicates whether the cell's computation has terminated
     var finished: Bool { get }
-    
-    
 }
 
 /** A vector-valued float buffer
@@ -84,11 +81,9 @@ class Buffer {
 
 class GlobalClock : Clock {
     var time: Float = 0
-    
     func tick() {
         time += 0.5
     }
-    
     func tock() {
         time += 0.5
     }
@@ -193,37 +188,42 @@ func loadVectorFeeds(from mat: Matrix, to feeds:[VectorFeed]) {
     }
 }
 
-
 /* Performs a  multiply-add.
  At each timestep, two inputs are multiplied, added to the register, then rounded and stored.*/
-class MA {
+class MA : Cell{
 
-    let inputSize = 2
-    let outputSize = 1
-    var inputs = Array<Float>(repeating:0, count: 2)
     var acc: Float  = 0
-
-    init() {
+    var inputBuffers: [Buffer]?
+    var outputBuffers: [Buffer]?
+    
+    init(inputs: [Buffer]) {
+        assert(inputs.count == 2, "MA cell expects two input buffers")
+        inputBuffers = inputs
+        outputBuffers = [Buffer(size: 1), Buffer(size:1)]
+    }
+    
+    private func bothInputsReady() -> Bool {
+        !(inputBuffers![0].isEmpty || inputBuffers![1].isEmpty )
     }
 
-    func setInput(to input: Array<Float>) {
-        self.inputs = input
+    func consume() {
+        if bothInputsReady() {
+            let inp1 = inputBuffers![0].get()!
+            let inp2 = inputBuffers![1].get()!
+            acc += inp1[0] * inp2[0]
+            // data needs to flow into outputs for other cells
+            outputBuffers![0].set(to: inp1)
+            outputBuffers![1].set(to: inp2)
+        }
     }
-
-    func getOutput() -> Array<Float> {
-        return [self.acc]
-    }
-
-    func tick() {
-    }
-    /// updates accumulator based on the inputs
-    func tock() {
-        self.acc += self.inputs[0] * self.inputs[1]
+    func emit() {}
+    var finished: Bool {
+        !bothInputsReady()
     }
     
     /// resets the accumulator to zero
     func reset() {
-        self.acc = 0
+        acc = 0
     }
 }
 

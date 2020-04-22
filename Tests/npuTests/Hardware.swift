@@ -18,12 +18,9 @@ class Hardware: XCTestCase {
         // Put teardown code here. This method is called after the invocation of each test method in the class.
     }
     
-  
     func AssertClose(_ x1:Float, _ x2:Float, eps:Float=1e-6) {
         XCTAssertLessThan(abs(x1 - x2), eps)
     }
-    
-
     
     func testBuffer() throws {
         let size = 2
@@ -35,35 +32,8 @@ class Hardware: XCTestCase {
         XCTAssertTrue(buf.isEmpty)
         XCTAssertEqual(data[0], 2.0)
         XCTAssertEqual(data[1], 4.0)
-                       
-    }
-    
-    func testMA() throws {
-        let ma = MA()
-        ma.setInput(to: [2.0, 3.0])
-        ma.tick()
-        ma.tock()
-        AssertClose(ma.getOutput()[0], 6.0)
-        ma.setInput(to: [1.0, 5.0])
-        ma.tick()
-        ma.tock()
-        AssertClose(ma.getOutput()[0], 11.0)
-        ma.reset()
-        AssertClose(ma.getOutput()[0], 0.0)
     }
 
-//    func testMACArray() throws {
-//        let size = 2
-//        let inputA = MatrixBuffer(numChannels: size, length: 2)
-//        let inputB = MatrixBuffer(numChannels: size, length: 2)
-//        let mac = try! MACArray(size:size, inputA: inputA, inputB: inputB)
-//        let accs = mac.accArray()
-//        for row in accs {
-//            for el in row {
-//                AssertClose(el, 0)
-//            }
-//        }
-//    }
     
     func testVectorFeed() throws {
     
@@ -79,11 +49,8 @@ class Hardware: XCTestCase {
         feed.emit()
         XCTAssertEqual(feed.outputBuffers![0].get(), nil)
         
-        
         feed.loadFrom(array: [5.0])
         XCTAssertFalse(feed.finished)
-        
-        
     }
     func testLoadVectorFeeds() throws {
         let m = Matrix(rowdata: [[2.0, 3.0], [4.0, 5.0]])
@@ -98,6 +65,38 @@ class Hardware: XCTestCase {
         }
     }
 
+    func testMA() throws {
+        let feed1 = VectorFeed(vals: [1.0, 2.0])
+        let feed2 = VectorFeed(vals: [2.0, 3.0])
+        let ma = MA(inputs: [feed1.outputBuffers![0], feed2.outputBuffers![0]])
+        XCTAssertEqual(ma.acc, 0.0)
+        feed1.emit()
+        feed2.emit()
+        ma.consume()
+        XCTAssertEqual(ma.acc, 2.0)
+        
+        feed1.emit()
+        feed2.emit()
+        ma.consume()
+        XCTAssertEqual(ma.acc, 8.0)
+        
+    }
+    
+
+//    func testMACArray() throws {
+//        let size = 2
+//        let inputA = MatrixBuffer(numChannels: size, length: 2)
+//        let inputB = MatrixBuffer(numChannels: size, length: 2)
+//        let mac = try! MACArray(size:size, inputA: inputA, inputB: inputB)
+//        let accs = mac.accArray()
+//        for row in accs {
+//            for el in row {
+//                AssertClose(el, 0)
+//            }
+//        }
+//    }
+
+    
     func testPerformanceExample() throws {
         // This is an example of a performance test case.
         self.measure {
