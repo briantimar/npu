@@ -76,6 +76,10 @@ class Hardware: XCTestCase {
             XCTAssertEqual(feed.outputBuffers![0].get(), [vals[i]])
         }
         XCTAssertTrue(feed.finished)
+        feed.emit()
+        XCTAssertEqual(feed.outputBuffers![0].get(), nil)
+        
+        
         feed.loadFrom(array: [5.0])
         XCTAssertFalse(feed.finished)
         

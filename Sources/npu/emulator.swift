@@ -167,7 +167,6 @@ class VectorFeed : Cell {
     }
     
     func emit() {
-        
         outputBuffers![0].set(to: currentValue())
         advance()
     }
