@@ -49,6 +49,8 @@ class Buffer {
     
     let size: Int
     var val: Array<dataType>? = nil
+    var hasRequest: Bool = false
+    
     init(size: Int) {
         self.size = size
     }
@@ -75,7 +77,15 @@ class Buffer {
     var isEmpty : Bool {
         val == nil
     }
-    
+    /// Request that this buffer be filled
+    func openRequest() {
+        hasRequest = true
+    }
+    /// Close any request
+    func closeRequest() {
+        hasRequest = false
+    }
+ 
 }
 
 
@@ -120,8 +130,12 @@ class RAM : Cell  {
 class VectorFeed : Cell {
     
     var vals: Array<dataType>
+    
     var inputBuffers: [Buffer]? = nil
     var outputBuffers: [Buffer]? = [Buffer(size: 1)]
+    /** A convention - vectorfeed never demands computation*/
+    let finished: Bool = true
+   
     /// index of the next item to be served
     private var current: Int = 0
     
@@ -135,6 +149,9 @@ class VectorFeed : Cell {
     
     var length: Int {
         vals.count
+    }
+    var outputBuffer: Buffer {
+        outputBuffers![0]
     }
     
     func currentValue() -> Array<dataType>? {
@@ -151,6 +168,7 @@ class VectorFeed : Cell {
         current = 0
     }
     
+    /** A feed element is just a source, has nothing to consume */
     func consume() {}
     
     /** Shifts the vector buffer down by one, exposing the next element*/
@@ -160,9 +178,13 @@ class VectorFeed : Cell {
                }
     }
     
+    /** The feed emits the next element, if requested and possible*/
     func emit() {
-        outputBuffers![0].set(to: currentValue())
-        advance()
+        if outputBuffer.hasRequest && !isEmpty {
+            outputBuffer.set(to: currentValue())
+            advance()
+            outputBuffer.closeRequest()
+        }
     }
     
     /// Returns the number of elements remaining in the buffer
@@ -170,13 +192,11 @@ class VectorFeed : Cell {
         return length - current
     }
     
-    func isEmpty() -> Bool {
+    var isEmpty: Bool {
         return current >= length
     }
     
-    var finished: Bool {
-        isEmpty()
-    }
+
 }
 
 /// Loads matrix data into a collection of vector feeds
@@ -265,8 +285,24 @@ class MACArray {
             }
             cells.append(row)
         }
-        
     }
+    
+    ///Run cells until all are finished; if initiailzed properly this will perform systolic matmul
+//    func compute() {
+//        /// make the first matrix data available at all edges
+//        for feed in leftFeeds + topFeeds {
+//            feed.emit()
+//        }
+//        
+//        let done = false
+//        while !done {
+//            for ic in 0..<cols {
+//                for ir in 0..<rows {
+//                    if 
+//                }
+//            }
+//        }
+//    }
 
     /// Returns array holding the current accumulator states
     func accArray() -> [[Float]] {
