@@ -123,23 +123,28 @@ class RAM : Cell  {
 
 /// A buffer which holds a single vector of data; used to feed a MACArray
 /// when the vector is exhausted, yields 0
-class VectorBuf {
+class VectorFeed : Cell {
     
-    let length : Int
-    let inputSize: Int
-    let outputSize: Int = 1
+
     var vals: Array<dataType>
-    private var current: Int
+    var inputBuffers: [Buffer]? = nil
+    var outputBuffers: [Buffer]? = [Buffer(size: 1)]
+    /// index of the next item to be served
+    private var current: Int = 0
     
-    init(length: Int){
-        self.length = length
-        self.inputSize = length
-        self.vals = Array<dataType>(repeating: 0, count: length)
-//        index of the next item to be served
-        current = 0
+    init(){
+        vals = [dataType]()
     }
     
-    func getOutput() -> Array<dataType> {
+    init(vals: Array<dataType>){
+        self.vals = vals
+    }
+    
+    var length: Int {
+        vals.count
+    }
+    
+    func currentValue() -> Array<dataType> {
         if current >= length {
             return [0]
         }
@@ -152,9 +157,7 @@ class VectorBuf {
         self.vals = array
     }
     
-    func setInput(to vals: Array<dataType>) {
-        loadFrom(array: vals)
-    }
+    func consume() {}
     
     /** Shifts the vector buffer down by one, exposing the next element*/
     func advance() {
@@ -163,70 +166,79 @@ class VectorBuf {
                }
     }
     
+    func emit() {
+        outputBuffers![0].set(to: currentValue())
+        advance()
+    }
+    
     /// Returns the number of elements remaining in the buffer
     var remaining: Int {
         return length - current
     }
     
-    
     func isEmpty() -> Bool {
         return current >= length
     }
+    
+    var finished: Bool {
+        isEmpty()
+    }
+    
+
 }
 
-/// Defines a matrix buffer which can be used to feed the MAC array
-class MatrixBuffer {
-    let numChannels: Int
-    let length: Int
-    var channels: [VectorBuf]
-    
-    /**
-     -Parameter numChannels: number of vector channels which constitute the buffer
-        -Parameter length: the length of each channel
-     */
-    init(numChannels:Int, length:Int) {
-        self.numChannels = numChannels
-        self.length = length
-        channels = [VectorBuf]()
-        for _ in 0..<numChannels {
-            channels.append(VectorBuf(length: length))
-        }
-    }
-    
-    /** loads data from a raw array
-        each column in the array is treated as a channel.*/
-    func loadFrom(matrix: Matrix) {
-        assert(matrix.rows == length && matrix.cols == numChannels, "invalid matrix shape")
-        for colIndex in 0..<matrix.cols {
-            channels[colIndex].loadFrom(array: matrix[0..<matrix.rows, colIndex])
-        }
-        
-    }
-    
-
-
-    /**
-        returns output of the buffer at the given index
- */
-    func getOutput(at index:Int) -> [dataType] {
-        return channels[index].getOutput()
-    }
-    /** advances the channel at the given index*/
-    func advance(at index: Int) {
-        channels[index].advance()
-    }
-    
-    /// number of elements remaining in the given channel
-    func remaining(at index: Int) -> Int {
-        channels[index].remaining
-    }
-    
-    ///Checks whether all channels are emptied
-    func isEmpty() -> Bool {
-        channels.allSatisfy({v in v.isEmpty()})
-    }
-}
-    
+///// Defines a matrix buffer which can be used to feed the MAC array
+//class MatrixBuffer {
+//    let numChannels: Int
+//    let length: Int
+//    var channels: [VectorFeed]
+//
+//    /**
+//     -Parameter numChannels: number of vector channels which constitute the buffer
+//        -Parameter length: the length of each channel
+//     */
+//    init(numChannels:Int, length:Int) {
+//        self.numChannels = numChannels
+//        self.length = length
+//        channels = [VectorFeed]()
+//        for _ in 0..<numChannels {
+//            channels.append(VectorFeed(length: length))
+//        }
+//    }
+//
+//    /** loads data from a raw array
+//        each column in the array is treated as a channel.*/
+//    func loadFrom(matrix: Matrix) {
+//        assert(matrix.rows == length && matrix.cols == numChannels, "invalid matrix shape")
+//        for colIndex in 0..<matrix.cols {
+//            channels[colIndex].loadFrom(array: matrix[0..<matrix.rows, colIndex])
+//        }
+//
+//    }
+//
+//
+//    /**
+//        returns output of the buffer at the given index
+// */
+//    func getOutput(at index:Int) -> [dataType] {
+//        return channels[index].getOutput()
+//    }
+//    /** advances the channel at the given index*/
+//    func advance(at index: Int) {
+//        channels[index].advance()
+//    }
+//
+//    /// number of elements remaining in the given channel
+//    func remaining(at index: Int) -> Int {
+//        channels[index].remaining
+//    }
+//
+//    ///Checks whether all channels are emptied
+//    func isEmpty() -> Bool {
+//        channels.allSatisfy({v in v.isEmpty()})
+//    }
+//}
+//
 
 
 
@@ -264,53 +276,53 @@ class MA {
 }
 
 
-
-/// an array of MA cells, which can be used to perform systolic matmul
-class MACArray : Clocked {
-    
-    let size: Int
-    var cells: Array<Array<MA>>
-    var inputA: MatrixBuffer
-    var inputB: MatrixBuffer
-    
-    init(size: Int, inputA: MatrixBuffer, inputB: MatrixBuffer) throws {
-        self.size = size
-        
-        guard (inputA.numChannels == size) && (inputB.numChannels == size) else {
-            throw HardwareError.invalidSize
-        }
-        
-        cells = [[MA]]()
-        for _ in 0..<size {
-            var row = [MA]()
-            for _ in 0..<size {
-                row.append(MA())
-            }
-            cells.append(row)
-        }
-        self.inputA = inputA
-        self.inputB = inputB
-        
-    }
-    
-    
-    func tick() {
-    }
-    
-    func tock() {
-    }
-    
-    /// Returns array holding the current accumulator states
-    func accArray() -> [[Float]] {
-        var accs = [[Float]]()
-        for i in 0..<size {
-            var row = [Float]()
-            for j in 0..<size {
-                row.append(cells[i][j].acc)
-            }
-            accs.append(row)
-        }
-        return accs
-    }
-    
-}
+//
+///// an array of MA cells, which can be used to perform systolic matmul
+//class MACArray : Clocked {
+//    
+//    let size: Int
+//    var cells: Array<Array<MA>>
+//    var inputA: MatrixBuffer
+//    var inputB: MatrixBuffer
+//    
+//    init(size: Int, inputA: MatrixBuffer, inputB: MatrixBuffer) throws {
+//        self.size = size
+//        
+//        guard (inputA.numChannels == size) && (inputB.numChannels == size) else {
+//            throw HardwareError.invalidSize
+//        }
+//        
+//        cells = [[MA]]()
+//        for _ in 0..<size {
+//            var row = [MA]()
+//            for _ in 0..<size {
+//                row.append(MA())
+//            }
+//            cells.append(row)
+//        }
+//        self.inputA = inputA
+//        self.inputB = inputB
+//        
+//    }
+//    
+//    
+//    func tick() {
+//    }
+//    
+//    func tock() {
+//    }
+//    
+//    /// Returns array holding the current accumulator states
+//    func accArray() -> [[Float]] {
+//        var accs = [[Float]]()
+//        for i in 0..<size {
+//            var row = [Float]()
+//            for j in 0..<size {
+//                row.append(cells[i][j].acc)
+//            }
+//            accs.append(row)
+//        }
+//        return accs
+//    }
+//    
+//}
