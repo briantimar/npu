@@ -17,6 +17,9 @@ class utils: XCTestCase {
     override func tearDownWithError() throws {
         // Put teardown code here. This method is called after the invocation of each test method in the class.
     }
+    func AssertClose(_ x1:Float, _ x2:Float, eps:Float=1e-6) {
+        XCTAssertLessThan(abs(x1 - x2), eps)
+    }
 
     func testMatrix() throws {
         let rows = 2
@@ -68,10 +71,20 @@ class utils: XCTestCase {
         XCTAssertEqual(m1.sum(), 3.0)
     }
     
+    func testMatrixMap() throws {
+        let m = Matrix(rowdata: [[-1.0, 2.0]])
+        let m2 = m.map({x in x*x})
+        XCTAssertEqual(m2[0, 0], 1.0)
+        XCTAssertEqual(m2[0,1], 4.0)
+    }
+    
     func testMatrixAdd() {
-//        let m1 = Matrix(rowdata: [[1.0, 2.0], [1.0, 0.0]])
-//        let m2 = Matrix(rowdata: [[5.0, 3.0], [-4.0, 1.0]])
-//        let sum = m1 + m2
+        let m1 = Matrix(rowdata: [[1.0, 2.0], [1.0, 0.0]])
+        let m2 = Matrix(rowdata: [[5.0, 3.0], [-4.0, 1.0]])
+        let target = Matrix(rowdata: [[6.0, 5.0], [-3.0, 1.0]])
+        let sum = m1 + m2
+        AssertClose((sum-target).l2norm(), 0.0)
+        
     }
     
     func testPerformanceExample() throws {

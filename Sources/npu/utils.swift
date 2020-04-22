@@ -99,6 +99,17 @@ extension Matrix {
         return MatrixIterator(rows: rows, cols: cols, rowdata: data)
     }
     
+    /// Returns new matrix with the given function applied pointwise
+    func map(_ f:(dataType)->dataType) -> Matrix {
+        var mapped = Matrix(rows:rows, cols:cols)
+        for i in 0..<rows {
+            for j in 0..<cols {
+                mapped[i,j] = f(self[i,j])
+            }
+        }
+        return mapped
+    }
+    
     /// sum of all array elements
     func sum() -> dataType {
         var ct:dataType = 0
@@ -106,6 +117,10 @@ extension Matrix {
             ct += el
         }
         return ct
+    }
+    
+    func l2norm() -> dataType {
+        return self.map({x in x*x}).sum()
     }
 }
 
@@ -117,6 +132,17 @@ extension Matrix {
         for i in 0..<m1.rows {
             for j in 0..<m2.cols {
                 sum[i,j] = m1[i,j] + m2[i,j]
+            }
+        }
+        return sum
+    }
+    
+    static func - (m1 : Matrix, m2: Matrix) -> Matrix {
+        assert(m1.rows == m2.rows && m1.cols == m2.cols, "matrix dimensions must agree")
+        var sum = Matrix(rows:m1.rows, cols: m1.cols)
+        for i in 0..<m1.rows {
+            for j in 0..<m2.cols {
+                sum[i,j] = m1[i,j] - m2[i,j]
             }
         }
         return sum
