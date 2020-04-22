@@ -40,7 +40,6 @@ class Hardware: XCTestCase {
         let vals:Array<Float> = [1.0, 2.0, 3.0]
         let feed = VectorFeed(vals: vals)
         
-    
         for i in 0..<feed.length {
             feed.outputBuffer.openRequest()
             feed.emit()
@@ -49,9 +48,6 @@ class Hardware: XCTestCase {
         
         feed.emit()
         XCTAssertEqual(feed.outputBuffer.get(), nil)
-        
-        
-        
     }
     func testLoadVectorFeeds() throws {
         let m = Matrix(rowdata: [[2.0, 3.0], [4.0, 5.0]])
@@ -88,13 +84,38 @@ class Hardware: XCTestCase {
     }
     
 
-    func testMACArray() throws {
+    func testMACArrayBuild() throws {
         let leftFeeds = [VectorFeed(vals:[1.0]), VectorFeed(vals:[2.0])]
         let topFeeds = [VectorFeed(vals:[3.0]), VectorFeed(vals: [4.0])]
         let mac = MACArray(leftFeeds: leftFeeds, topFeeds: topFeeds)
         XCTAssertEqual(mac.rows, leftFeeds.count)
         XCTAssertEqual(mac.cols, topFeeds.count)
         
+        var maCt = 0
+        var feedCt = 0
+        for cell in mac {
+            if cell is MA {
+                maCt += 1
+            }
+            else if cell is VectorFeed {
+                feedCt += 1
+            }
+        }
+        XCTAssertEqual(maCt, mac.rows * mac.cols)
+        XCTAssertEqual(feedCt, mac.rows + mac.cols)
+    }
+    
+    func testMACRun() throws {
+        let leftFeeds = [VectorFeed(vals:[1.0], label:"lf0"), VectorFeed(vals:[2.0], label:"lf1")]
+        let topFeeds = [VectorFeed(vals:[3.0], label: "tf0"), VectorFeed(vals: [4.0], label:"tf1")]
+        let mac = MACArray(leftFeeds: leftFeeds, topFeeds: topFeeds)
+        let numSteps = 1
+        mac.runMADriven(numsteps: numSteps)
+        let res = mac.accMatrix()
+        XCTAssertEqual(res[0, 0], 3.0)
+        XCTAssertEqual(res[0,1], 4.0)
+        XCTAssertEqual(res[1,0], 6.0)
+        XCTAssertEqual(res[1, 1], 8.0)
     }
 
     

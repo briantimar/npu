@@ -41,6 +41,7 @@ protocol Cell : AnyObject {
     func emit()
     /// Indicates whether the cell's computation has terminated
     var finished: Bool { get }
+    var label: String { get }
 }
 
 /** A vector-valued float buffer
@@ -50,14 +51,17 @@ class Buffer {
     let size: Int
     var val: Array<dataType>? = nil
     var hasRequest: Bool = false
+    let label:String
     
-    init(size: Int) {
+    init(size: Int, label:String="") {
         self.size = size
+        self.label = label
     }
     
-    init(array: Array<dataType>) {
+    init(array: Array<dataType>, label:String="") {
         size = array.count
         val = array
+        self.label=label
     }
     
     /// store a new value in the buffer
@@ -109,16 +113,19 @@ class RAM : Cell  {
     // register does not consume input
     var inputBuffers:[Buffer]? = nil
     var outputBuffers: [Buffer]?
+    let label: String
     
-    init(vals: Array<dataType>) {
+    init(vals: Array<dataType>, label:String="") {
         self.size = vals.count
         self.vals = vals
         outputBuffers = [Buffer(array: vals)]
+        self.label = label
     }
     
-    init( size: Int) {
+    init( size: Int, label:String = "") {
         self.size = size
         self.vals = Array<dataType>(repeating: 0.0, count: size)
+        self.label = label
     }
 
     func consume() {}
@@ -135,19 +142,24 @@ class VectorFeed : Cell {
     var vals: Array<dataType>
     
     var inputBuffers: [Buffer]? = nil
-    var outputBuffers: [Buffer]? = [Buffer(size: 1)]
+    var outputBuffers: [Buffer]?
     /** A convention - vectorfeed never demands computation*/
     let finished: Bool = true
+    let label: String
    
     /// index of the next item to be served
     private var current: Int = 0
     
-    init(){
+    init(label:String = ""){
         vals = [dataType]()
+        self.label = label
+        outputBuffers = [Buffer(size: 1, label:"\(label)_outBuf")]
     }
     
-    init(vals: Array<dataType>){
+    init(vals: Array<dataType>, label:String = ""){
         self.vals = vals
+        self.label = label
+        outputBuffers = [Buffer(size: 1, label:"\(label)_outBuf")]
     }
     
     var length: Int {
@@ -184,9 +196,10 @@ class VectorFeed : Cell {
     /** The feed emits the next element, if requested and possible*/
     func emit() {
         if outputBuffer.hasRequest && !isEmpty {
-            outputBuffer.set(to: currentValue)
+            outputBuffer.set(to: currentValue!)
             advance()
             outputBuffer.closeRequest()
+            
         }
     }
     
@@ -217,8 +230,7 @@ class MA : Cell{
 
     var acc: Float  = 0
     var inputBuffers: [Buffer]?
-    var outputBuffers: [Buffer]? = [Buffer(size: 1), Buffer(size:1)]
-    
+    var outputBuffers: [Buffer]?
     /// Number of accumulation steps to perform
     var numAcc: Int = 0
     
@@ -229,19 +241,23 @@ class MA : Cell{
     let bottomOutput: Buffer
     
     /// hold inputs for pass-through
-    private var leftInpCache: dataType = 0
-    private var topInpCache: dataType = 0
+    private var leftInpCache: dataType? = nil
+    private var topInpCache: dataType? = nil
     
     /// number of acc steps performed in a particular computation
     private var accSteps: Int = 0
+    let label: String
     
-    init(leftInput: Buffer, topInput: Buffer, numAcc:Int = 0) {
+    init(leftInput: Buffer, topInput: Buffer, numAcc:Int = 0, label:String = "") {
+        self.label = label
+        outputBuffers = [Buffer(size: 1, label:"\(label)_rightOutBuf"), Buffer(size:1, label:"\(label)_bottomOutBuf")]
         inputBuffers = [leftInput, topInput]
         self.leftInput = leftInput
         self.topInput = topInput
         rightOutput = outputBuffers![0]
-        bottomOutput = outputBuffers![0]
+        bottomOutput = outputBuffers![1]
         self.numAcc = numAcc
+        
     }
     
     private var bothInputsFull : Bool {
@@ -274,14 +290,14 @@ class MA : Cell{
             }
         }
     }
-    /** If any output buffer requests data, fill it from the cache*/
+    /** If any output buffer requests data, fill it from the cache if possible*/
     func emit() {
-        if rightOutput.hasRequest {
-            rightOutput.set(to: [leftInpCache])
+        if rightOutput.hasRequest && (leftInpCache != nil) {
+            rightOutput.set(to: [leftInpCache!])
             rightOutput.closeRequest()
         }
-        if bottomOutput.hasRequest {
-            bottomOutput.set(to: [topInpCache])
+        if bottomOutput.hasRequest && (topInpCache != nil) {
+            bottomOutput.set(to: [topInpCache!])
             bottomOutput.closeRequest()
         }
     }
@@ -326,13 +342,52 @@ class MACArray : Sequence, IteratorProtocol {
             var row = [MA]()
             var leftInput = leftFeeds[ir].outputBuffer
             for ic in 0..<cols {
-                newCell = MA(leftInput: leftInput, topInput: upperBufs[ic])
+                newCell = MA(leftInput: leftInput, topInput: upperBufs[ic], label: "MA(\(ir),\(ic))")
                 row.append(newCell)
                 leftInput = newCell.rightOutput
                 upperBufs[ic] = newCell.bottomOutput
             }
             MACells.append(row)
         }
+    }
+    
+    /** Runs the computation defined by the current state of the feeds and cells.
+        While all cells are not finished, each consumes and then emits*/
+    func run() {
+        var allFinished = false
+        var t = 0
+        while !allFinished {
+            allFinished = true
+            t += 1
+            for cell in self {
+            
+                if cell is MA && cell.finished {
+                }
+                if !cell.finished {
+                    cell.consume()
+                    allFinished = false
+                }
+            }
+            for cell in self {
+                cell.emit()
+            }
+        }
+    }
+    
+    /** resets the state of all MA cells, with each demaning the given number of steps*/
+    private func resetMAToSteps(numsteps: Int) {
+        for i in 0..<rows {
+           for j in 0..<cols {
+            MACells[i][j].reset()
+            MACells[i][j].numAcc = numsteps
+           }
+        }
+    }
+    
+    /** Computes with each MA demanding a given number of mul-acc steps*/
+    func runMADriven(numsteps:Int){
+        resetMAToSteps(numsteps: numsteps)
+        run()
     }
     
     func makeIterator() -> MACArray {
@@ -358,34 +413,16 @@ class MACArray : Sequence, IteratorProtocol {
         }
     }
     
-    ///Run cells until all are finished; if initiailzed properly this will perform systolic matmul
-//    func compute() {
-//        /// make the first matrix data available at all edges
-//        for feed in leftFeeds + topFeeds {
-//            feed.emit()
-//        }
-//        
-//        let done = false
-//        while !done {
-//            for ic in 0..<cols {
-//                for ir in 0..<rows {
-//                    if 
-//                }
-//            }
-//        }
-//    }
-
     /// Returns array holding the current accumulator states
-    func accArray() -> [[Float]] {
-        var accs = [[Float]]()
+    func accMatrix() -> Matrix {
+        var accs = Matrix(rows:rows, cols: cols)
         for i in 0..<rows {
-            var row = [Float]()
             for j in 0..<cols {
-                row.append(MACells[i][j].acc)
+                accs[i,j] = MACells[i][j].acc
             }
-            accs.append(row)
         }
         return accs
     }
 
 }
+
