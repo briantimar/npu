@@ -124,7 +124,6 @@ class RAM : Cell  {
 /// A buffer which holds a single vector of data; used to feed a MACArray
 class VectorFeed : Cell {
     
-
     var vals: Array<dataType>
     var inputBuffers: [Buffer]? = nil
     var outputBuffers: [Buffer]? = [Buffer(size: 1)]
@@ -187,58 +186,7 @@ class VectorFeed : Cell {
 
 }
 
-///// Defines a matrix buffer which can be used to feed the MAC array
-//class MatrixBuffer {
-//    let numChannels: Int
-//    let length: Int
-//    var channels: [VectorFeed]
-//
-//    /**
-//     -Parameter numChannels: number of vector channels which constitute the buffer
-//        -Parameter length: the length of each channel
-//     */
-//    init(numChannels:Int, length:Int) {
-//        self.numChannels = numChannels
-//        self.length = length
-//        channels = [VectorFeed]()
-//        for _ in 0..<numChannels {
-//            channels.append(VectorFeed(length: length))
-//        }
-//    }
-//
-//    /** loads data from a raw array
-//        each column in the array is treated as a channel.*/
-//    func loadFrom(matrix: Matrix) {
-//        assert(matrix.rows == length && matrix.cols == numChannels, "invalid matrix shape")
-//        for colIndex in 0..<matrix.cols {
-//            channels[colIndex].loadFrom(array: matrix[0..<matrix.rows, colIndex])
-//        }
-//
-//    }
-//
-//
-//    /**
-//        returns output of the buffer at the given index
-// */
-//    func getOutput(at index:Int) -> [dataType] {
-//        return channels[index].getOutput()
-//    }
-//    /** advances the channel at the given index*/
-//    func advance(at index: Int) {
-//        channels[index].advance()
-//    }
-//
-//    /// number of elements remaining in the given channel
-//    func remaining(at index: Int) -> Int {
-//        channels[index].remaining
-//    }
-//
-//    ///Checks whether all channels are emptied
-//    func isEmpty() -> Bool {
-//        channels.allSatisfy({v in v.isEmpty()})
-//    }
-//}
-//
+
 
 
 
