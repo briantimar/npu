@@ -182,12 +182,16 @@ class VectorFeed : Cell {
     var finished: Bool {
         isEmpty()
     }
-    
-
 }
 
-
-
+/// Loads matrix data into a collection of vector feeds
+/// each feed corresponds to one column
+func loadVectorFeeds(from mat: Matrix, to feeds:[VectorFeed]) {
+    assert(mat.cols == feeds.count, "number of feeds does not match number of cols")
+    for i in 0..<mat.cols {
+        feeds[i].loadFrom(array: mat[0..<mat.rows, i])
+    }
+}
 
 
 /* Performs a  multiply-add.

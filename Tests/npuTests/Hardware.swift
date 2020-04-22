@@ -85,7 +85,18 @@ class Hardware: XCTestCase {
         
         
     }
-    
+    func testLoadVectorFeeds() throws {
+        let m = Matrix(rowdata: [[2.0, 3.0], [4.0, 5.0]])
+        let feeds = [VectorFeed(), VectorFeed()]
+        XCTAssertTrue(feeds[0].finished)
+        loadVectorFeeds(from: m, to: feeds)
+        XCTAssertEqual(feeds[0].length, 2)
+        XCTAssertFalse(feeds[0].finished)
+        for i in 0..<2 {
+            feeds[0].emit()
+            XCTAssertEqual(feeds[0].outputBuffers![0].get(), [m[i,0]])
+        }
+    }
 
     func testPerformanceExample() throws {
         // This is an example of a performance test case.
