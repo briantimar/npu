@@ -297,38 +297,64 @@ class MA : Cell{
     }
 }
 
+
 /// an array of MA cells, which can be used to perform systolic matmul
 /// data is drawn from two feeds: one on the left, and one on the top
-class MACArray {
+class MACArray : Sequence, IteratorProtocol {
 
-    var cells: [[MA]]
+    var MACells: [[MA]]
     /// Number of rows in the array
     let rows: Int
     /// Number of cols in the array
     let cols: Int
     let leftFeeds: [VectorFeed]
     let topFeeds: [VectorFeed]
-
+    private var cellCt:Int = 0
+    
     init(leftFeeds: [VectorFeed], topFeeds: [VectorFeed]) {
         self.leftFeeds = leftFeeds
         self.topFeeds = topFeeds
         rows = leftFeeds.count
         cols = topFeeds.count
 
-        cells = [[MA]]()
-        //holds inputs from the previous row
-        var upperBufs: [Buffer] = topFeeds.map({v in v.outputBuffers![0]})
+        MACells = [[MA]]()
+        
+        // This stitches together the buffers in the MA grid
+        var upperBufs: [Buffer] = topFeeds.map({v in v.outputBuffer})
         var newCell: MA
         for ir in 0..<rows {
             var row = [MA]()
-            var leftInput = leftFeeds[ir].outputBuffers![0]
+            var leftInput = leftFeeds[ir].outputBuffer
             for ic in 0..<cols {
                 newCell = MA(leftInput: leftInput, topInput: upperBufs[ic])
                 row.append(newCell)
                 leftInput = newCell.rightOutput
                 upperBufs[ic] = newCell.bottomOutput
             }
-            cells.append(row)
+            MACells.append(row)
+        }
+    }
+    
+    func makeIterator() -> MACArray {
+        cellCt = 0
+        return self
+    }
+    
+    func next() -> Cell? {
+        defer {
+            cellCt += 1
+        }
+        if cellCt < rows * cols {
+            return MACells[cellCt / cols][cellCt % cols]
+        }
+        else if cellCt < rows * cols + rows {
+            return leftFeeds[cellCt - rows * cols]
+        }
+        else if cellCt < rows * cols + rows + cols {
+            return topFeeds[cellCt - rows*cols - rows]
+        }
+        else {
+            return nil
         }
     }
     
@@ -355,7 +381,7 @@ class MACArray {
         for i in 0..<rows {
             var row = [Float]()
             for j in 0..<cols {
-                row.append(cells[i][j].acc)
+                row.append(MACells[i][j].acc)
             }
             accs.append(row)
         }
