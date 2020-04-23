@@ -53,7 +53,7 @@ class Hardware: XCTestCase {
         let m = Matrix(rowdata: [[2.0, 3.0], [4.0, 5.0]])
         let feeds = [VectorFeed(), VectorFeed()]
         
-        loadVectorFeeds(from: m, to: feeds)
+        loadVectorFeeds(from: m, to: feeds, by: "columns")
         XCTAssertEqual(feeds[0].length, 2)
         XCTAssertFalse(feeds[0].isEmpty)
         for i in 0..<2 {
@@ -118,6 +118,18 @@ class Hardware: XCTestCase {
         XCTAssertEqual(res[1, 1], 8.0)
     }
 
+    
+    func testMACMatMul() throws {
+        let leftMat = Matrix(rowdata: [[1.0, 3.0, 4.0], [-5.0, 0.0, 2.0]])
+        let topMat = Matrix(rowdata: [[2.0, 2.0], [-3.0, 2.0], [0.0, 4.0]])
+        
+        let mac = MACArray(rows: leftMat.rows, cols: topMat.cols)
+        assert(mac.leftFeeds.count == leftMat.rows )
+        assert(mac.topFeeds.count == topMat.cols)
+        let prod = mac.matMul(leftMat: leftMat, topMat: topMat)
+        let target = leftMat * topMat
+        AssertClose((target-prod).l2norm(), 0.0)
+    }
     
     func testPerformanceExample() throws {
         // This is an example of a performance test case.

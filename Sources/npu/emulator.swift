@@ -216,13 +216,24 @@ class VectorFeed : Cell {
 }
 
 /// Loads matrix data into a collection of vector feeds
-/// each feed corresponds to one column
-func loadVectorFeeds(from mat: Matrix, to feeds:[VectorFeed]) {
-    assert(mat.cols == feeds.count, "number of feeds does not match number of cols")
-    for i in 0..<mat.cols {
-        feeds[i].loadFrom(array: mat[0..<mat.rows, i])
+/// by: "columns" -> each feed gets one column
+/// by: "rows" -> each feed gets one row
+func loadVectorFeeds(from mat: Matrix, to feeds:[VectorFeed], by order:String) {
+    if order == "columns" {
+            assert(mat.cols == feeds.count, "number of feeds does not match number of cols")
+              for i in 0..<mat.cols {
+                  feeds[i].loadFrom(array: mat[0..<mat.rows, i])
+              }
+    }
+        
+    else {
+            assert(mat.rows == feeds.count, "number of feeds does not match number of rows")
+            for i in 0..<mat.rows {
+                feeds[i].loadFrom(array: mat[i, 0..<mat.cols])
+            }
     }
 }
+
 
 /* Performs a  multiply-add.
  At each timestep, two inputs are multiplied, added to the register, then rounded and stored.*/
@@ -313,6 +324,29 @@ class MA : Cell{
     }
 }
 
+/// Makes an MA grid hooked up to the given left- and top-feeds
+func makeMAGrid(leftFeeds: [VectorFeed], topFeeds: [VectorFeed]) -> [[MA]] {
+    let rows = leftFeeds.count
+    let cols = topFeeds.count
+
+    var MACells = [[MA]]()
+    
+    // This stitches together the buffers in the MA grid
+    var upperBufs: [Buffer] = topFeeds.map({v in v.outputBuffer})
+    var newCell: MA
+    for ir in 0..<rows {
+        var row = [MA]()
+        var leftInput = leftFeeds[ir].outputBuffer
+        for ic in 0..<cols {
+            newCell = MA(leftInput: leftInput, topInput: upperBufs[ic], label: "MA(\(ir),\(ic))")
+            row.append(newCell)
+            leftInput = newCell.rightOutput
+            upperBufs[ic] = newCell.bottomOutput
+        }
+        MACells.append(row)
+    }
+    return MACells
+}
 
 /// an array of MA cells, which can be used to perform systolic matmul
 /// data is drawn from two feeds: one on the left, and one on the top
@@ -333,22 +367,24 @@ class MACArray : Sequence, IteratorProtocol {
         rows = leftFeeds.count
         cols = topFeeds.count
 
-        MACells = [[MA]]()
-        
-        // This stitches together the buffers in the MA grid
-        var upperBufs: [Buffer] = topFeeds.map({v in v.outputBuffer})
-        var newCell: MA
-        for ir in 0..<rows {
-            var row = [MA]()
-            var leftInput = leftFeeds[ir].outputBuffer
-            for ic in 0..<cols {
-                newCell = MA(leftInput: leftInput, topInput: upperBufs[ic], label: "MA(\(ir),\(ic))")
-                row.append(newCell)
-                leftInput = newCell.rightOutput
-                upperBufs[ic] = newCell.bottomOutput
-            }
-            MACells.append(row)
+        MACells = makeMAGrid(leftFeeds: leftFeeds, topFeeds: topFeeds)
+    }
+    
+    init(rows:Int, cols:Int) {
+        self.rows = rows
+        self.cols = cols
+        var _leftFeeds = [VectorFeed]()
+        var _topFeeds = [VectorFeed]()
+        for i in 0..<rows {
+            _leftFeeds.append(VectorFeed(label:"lf\(i)"))
         }
+        for i in 0..<cols {
+            _topFeeds.append(VectorFeed(label:"tf\(i))"))
+        }
+        leftFeeds = _leftFeeds
+        topFeeds = _topFeeds
+        
+        MACells = makeMAGrid(leftFeeds: leftFeeds, topFeeds: topFeeds)
     }
     
     /** Runs the computation defined by the current state of the feeds and cells.
@@ -388,6 +424,18 @@ class MACArray : Sequence, IteratorProtocol {
     func runMADriven(numsteps:Int){
         resetMAToSteps(numsteps: numsteps)
         run()
+    }
+    
+    /** Computes the product of the given matrices */
+    func matMul(leftMat: Matrix, topMat: Matrix) -> Matrix {
+        assert(leftMat.rows == rows, "leftMat has invalid shape")
+        assert(topMat.cols == cols, "topMat has invalid shape")
+        assert(leftMat.cols == topMat.rows, "matrix inner dimensions do not agree")
+        loadVectorFeeds(from: leftMat, to: leftFeeds, by: "rows")
+        loadVectorFeeds(from: topMat, to: topFeeds, by: "columns")
+        runMADriven(numsteps: leftMat.cols)
+        
+        return accMatrix()
     }
     
     func makeIterator() -> MACArray {
